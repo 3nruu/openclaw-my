@@ -1,12 +1,10 @@
-import "./styles/base.css";
-import "./styles/layout.css";
-import "./styles/layout.mobile.css";
-import "./styles/components.css";
-import "./styles/chat.css";
-import "./styles/config.css";
-import "./styles/config-quick.css";
-import "./styles/cron-quick-create.css";
-import "./styles/usage.css";
-import "./styles/dreams.css";
-import "./styles/chat-simple.css";
-import "./ui/app.ts";
+import "./styles.css";
+import { buildAppShell, setAppStateRef } from "./chat/render.ts";
+import { connect, state } from "./chat/app.ts";
+
+const root = document.getElementById("app");
+if (!root) throw new Error("#app not found");
+
+setAppStateRef({ state });
+buildAppShell(root);
+connect();

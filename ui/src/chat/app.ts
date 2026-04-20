@@ -1,6 +1,7 @@
 import {
   GatewayBrowserClient,
   GatewayRequestError,
+  isNonRecoverableAuthError,
   type GatewayEventFrame,
   type GatewayHelloOk,
 } from "./gateway.ts";
@@ -36,6 +37,7 @@ export type ToolLogEntry = {
 export type AppState = {
   connected: boolean;
   connecting: boolean;
+  authError: boolean;
   error: string | null;
   sessionKey: string;
   messages: ChatMessage[];
@@ -47,16 +49,44 @@ export type AppState = {
   searchQuery: string;
   toolLogs: ToolLogEntry[];
   gatewayUrl: string;
+  token: string;
+  password: string;
   serverVersion: string | null;
 };
+
+// ── Credentials persistence ────────────────────────────────────────────────
+
+const CREDS_KEY = "openclaw.chat.creds.v1";
+
+function loadCreds(): { url: string; token: string; password: string } {
+  try {
+    const raw = localStorage.getItem(CREDS_KEY);
+    if (!raw) return { url: deriveGatewayUrl(), token: "", password: "" };
+    const p = JSON.parse(raw) as { url?: string; token?: string; password?: string };
+    return {
+      url: typeof p.url === "string" && p.url ? p.url : deriveGatewayUrl(),
+      token: typeof p.token === "string" ? p.token : "",
+      password: typeof p.password === "string" ? p.password : "",
+    };
+  } catch {
+    return { url: deriveGatewayUrl(), token: "", password: "" };
+  }
+}
+
+function saveCreds(url: string, token: string, password: string) {
+  try { localStorage.setItem(CREDS_KEY, JSON.stringify({ url, token, password })); } catch { /* best-effort */ }
+}
 
 // ── State ─────────────────────────────────────────────────────────────────
 
 let client: GatewayBrowserClient | null = null;
 
+const _creds = loadCreds();
+
 export const state: AppState = {
   connected: false,
   connecting: true,
+  authError: false,
   error: null,
   sessionKey: "agent:main:main",
   messages: [],
@@ -67,7 +97,9 @@ export const state: AppState = {
   logPanelOpen: false,
   searchQuery: "",
   toolLogs: [],
-  gatewayUrl: deriveGatewayUrl(),
+  gatewayUrl: _creds.url,
+  token: _creds.token,
+  password: _creds.password,
   serverVersion: null,
 };
 
@@ -93,14 +125,18 @@ export function connect() {
 
   state.connecting = true;
   state.connected = false;
+  state.authError = false;
   state.error = null;
   scheduleRender();
 
   client = new GatewayBrowserClient({
     url: state.gatewayUrl,
+    token: state.token || undefined,
+    password: state.password || undefined,
     onHello: (hello: GatewayHelloOk) => {
       state.connected = true;
       state.connecting = false;
+      state.authError = false;
       state.error = null;
       state.serverVersion = hello.server?.version ?? null;
       scheduleRender();
@@ -109,7 +145,11 @@ export function connect() {
     onEvent: (evt: GatewayEventFrame) => handleEvent(evt),
     onClose: (info) => {
       state.connected = false;
-      if (info.error?.code && !state.connected) {
+      state.connecting = false;
+      if (info.error && isNonRecoverableAuthError(info.error)) {
+        state.authError = true;
+        state.error = null;
+      } else if (info.error?.code) {
         state.error = info.error.message ?? "Connection closed";
       }
       scheduleRender();
@@ -117,6 +157,15 @@ export function connect() {
   });
 
   client.start();
+}
+
+export function setCredentials(url: string, token: string, password: string) {
+  state.gatewayUrl = url;
+  state.token = token;
+  state.password = password;
+  state.authError = false;
+  saveCreds(url, token, password);
+  connect();
 }
 
 // ── Chat history ───────────────────────────────────────────────────────────
