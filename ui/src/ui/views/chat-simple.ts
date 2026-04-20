@@ -8,19 +8,23 @@ import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-norm
 
 marked.use({ async: false, breaks: true, gfm: true });
 
-interface SimpleGroup {
+// ── Module-level UI state (no re-render needed for these) ─────────────────
+
+let _logPanelOpen = false;
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+interface MsgGroup {
   role: string;
   messages: unknown[];
 }
 
-function groupMessages(messages: unknown[]): SimpleGroup[] {
-  const groups: SimpleGroup[] = [];
+function groupMessages(messages: unknown[]): MsgGroup[] {
+  const groups: MsgGroup[] = [];
   for (const msg of messages) {
-    const normalized = normalizeMessage(msg);
-    const role = normalizeRoleForGrouping(normalized.role);
-    // tool results go to the right panel, skip in main thread
-    if (role === "tool" || role === "toolResult") continue;
-    if (role === "system") continue;
+    const n = normalizeMessage(msg);
+    const role = normalizeRoleForGrouping(n.role);
+    if (role === "tool" || role === "toolResult" || role === "system") continue;
     const last = groups[groups.length - 1];
     if (last && last.role === role) {
       last.messages.push(msg);
@@ -35,152 +39,259 @@ function renderMd(text: string): string {
   const raw = String(marked.parse(text));
   return DOMPurify.sanitize(raw, {
     ALLOWED_TAGS: [
-      "p", "br", "strong", "b", "em", "i", "s", "del", "code", "pre",
-      "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
-      "a", "blockquote", "hr", "table", "thead", "tbody", "tr", "th", "td",
-      "span", "div",
+      "p","br","strong","b","em","i","s","del","code","pre",
+      "ul","ol","li","h1","h2","h3","h4","h5","h6",
+      "a","blockquote","hr","table","thead","tbody","tr","th","td",
+      "span","div",
     ],
-    ALLOWED_ATTR: ["href", "target", "rel", "class", "data-lang"],
+    ALLOWED_ATTR: ["href","target","rel","class"],
   });
 }
 
-function avatarEl(role: string, props: ChatProps): TemplateResult {
-  if (role === "user" || role === "User") {
-    return html`<div class="sc-av sc-av--user">You</div>`;
+function avatarTpl(role: string, props: ChatProps): TemplateResult {
+  const isUser = role === "user" || role === "User";
+  if (isUser) {
+    return html`<div class="chs-av chs-av--user">You</div>`;
   }
   if (props.assistantAvatar) {
-    return html`<img class="sc-av sc-av--bot" src=${props.assistantAvatar} alt="" />`;
+    return html`<img class="chs-av chs-av--bot" src=${props.assistantAvatar} alt="" />`;
   }
-  const initial = (props.assistantName ?? "A")[0]?.toUpperCase() ?? "A";
-  return html`<div class="sc-av sc-av--bot">${initial}</div>`;
+  const letter = (props.assistantName ?? "A")[0]?.toUpperCase() ?? "A";
+  return html`<div class="chs-av chs-av--bot">${letter}</div>`;
 }
 
-function renderToolLog(msg: unknown, index: number): TemplateResult {
+function toolLogTpl(msg: unknown, i: number): TemplateResult {
   const m = msg as Record<string, unknown>;
-  const toolName =
-    typeof m.toolName === "string"
-      ? m.toolName
-      : typeof m.tool_name === "string"
-        ? m.tool_name
-        : `tool-${index + 1}`;
+  const name =
+    typeof m.toolName === "string" ? m.toolName
+    : typeof m.tool_name === "string" ? m.tool_name
+    : `tool-${i + 1}`;
   const text = extractTextCached(msg) ?? "";
-  const preview = text.length > 400 ? `${text.slice(0, 400)}…` : text;
+  const preview = text.length > 500 ? `${text.slice(0, 500)}\u2026` : text;
   return html`
-    <div class="sc-log">
-      <div class="sc-log-name">${toolName}</div>
-      ${preview ? html`<pre class="sc-log-out">${preview}</pre>` : nothing}
+    <div class="chs-log">
+      <div class="chs-log-name">${name}</div>
+      ${preview ? html`<pre class="chs-log-body">${preview}</pre>` : nothing}
     </div>
   `;
 }
 
+// ── Thinking toggle helper ─────────────────────────────────────────────────
+
+function sendCmd(props: ChatProps, cmd: string) {
+  const prev = props.draft;
+  props.onDraftChange(cmd);
+  // send on next microtask so Lit can propagate the draft change
+  Promise.resolve().then(() => {
+    props.onSend();
+    // restore original draft after send clears it
+    if (prev) {
+      setTimeout(() => props.onDraftChange(prev), 50);
+    }
+  });
+}
+
+// ── Main render ───────────────────────────────────────────────────────────
+
 export function renderChatSimple(props: ChatProps): TemplateResult {
   const groups = groupMessages(props.messages);
-  const hasTools = props.toolMessages.length > 0;
   const isEmpty = groups.length === 0 && !props.stream && !props.loading;
+  const isThinking = Boolean(props.thinkingLevel);
+  const hasTools = props.toolMessages.length > 0;
 
   return html`
-    <div class="sc-root${hasTools ? " sc-root--split" : ""}">
+    <div class="chs-root" id="chs-root">
 
-      <!-- ── Main column ── -->
-      <div class="sc-main">
-
-        <div class="sc-feed">
-          ${isEmpty
-            ? html`
-              <div class="sc-empty">
-                <div class="sc-empty-glyph">◈</div>
-                <p class="sc-empty-name">${props.assistantName}</p>
-                <p class="sc-empty-hint">Ask anything. I'm ready.</p>
-              </div>`
-            : nothing}
-
-          ${groups.map(
-            (g) => html`
-            <div class="sc-group sc-group--${g.role === "user" || g.role === "User" ? "user" : "bot"}">
-              <div class="sc-group-av">${avatarEl(g.role, props)}</div>
-              <div class="sc-group-body">
-                ${g.messages.map((msg) => {
-                  const text = extractTextCached(msg) ?? "";
-                  return text
-                    ? html`<div class="sc-bubble">${unsafeHTML(renderMd(text))}</div>`
-                    : nothing;
-                })}
-              </div>
-            </div>`,
-          )}
-
-          ${props.stream
-            ? html`
-              <div class="sc-group sc-group--bot sc-group--live">
-                <div class="sc-group-av">${avatarEl("assistant", props)}</div>
-                <div class="sc-group-body">
-                  <div class="sc-bubble">${unsafeHTML(renderMd(props.stream))}</div>
-                </div>
-              </div>`
-            : nothing}
-
-          ${props.loading && !props.stream
-            ? html`
-              <div class="sc-group sc-group--bot">
-                <div class="sc-group-av">${avatarEl("assistant", props)}</div>
-                <div class="sc-group-body">
-                  <div class="sc-dots"><span></span><span></span><span></span></div>
-                </div>
-              </div>`
-            : nothing}
+      <!-- ── Header ── -->
+      <header class="chs-header">
+        <div class="chs-search-wrap">
+          <svg class="chs-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            class="chs-search"
+            placeholder="Поиск по чату…"
+            type="search"
+            autocomplete="off"
+            @input=${(e: Event) => {
+              const q = (e.target as HTMLInputElement).value.toLowerCase();
+              document.querySelectorAll<HTMLElement>("#chs-feed .chs-group").forEach(el => {
+                el.style.display = !q || (el.textContent ?? "").toLowerCase().includes(q) ? "" : "none";
+              });
+            }}
+          />
         </div>
 
-        <!-- ── Input ── -->
-        <div class="sc-bar">
-          <div class="sc-bar-inner">
-            <textarea
-              class="sc-input"
-              placeholder="Message…"
-              .value=${props.draft}
-              ?disabled=${!props.canSend && !props.canAbort}
-              @input=${(e: Event) =>
-                props.onDraftChange((e.target as HTMLTextAreaElement).value)}
-              @keydown=${(e: KeyboardEvent) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (props.canSend && props.draft.trim()) props.onSend();
-                }
-              }}
-            ></textarea>
-            <div class="sc-bar-actions">
-              ${props.canAbort
-                ? html`<button class="sc-btn sc-btn--stop" @click=${() => props.onAbort?.()}>
-                    ■ Stop
-                  </button>`
-                : html`<button
-                    class="sc-btn sc-btn--send"
-                    ?disabled=${!props.canSend || !props.draft.trim()}
-                    @click=${() => props.onSend()}
-                  >↑</button>`}
-            </div>
+        <div class="chs-header-actions">
+          <button
+            class="chs-pill ${isThinking ? "chs-pill--on" : ""}"
+            title=${isThinking ? "Thinking ON — нажми чтобы выключить" : "Thinking OFF — нажми чтобы включить"}
+            @click=${() => sendCmd(props, isThinking ? "/thinking off" : "/thinking on")}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46
+                2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58
+                2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+              <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46
+                2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58
+                2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+            </svg>
+            ${isThinking ? "Thinking" : "Instant"}
+          </button>
+
+          <button
+            class="chs-icon-btn"
+            title="Обновить чат"
+            @click=${() => props.onRefresh()}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 2v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/>
+            </svg>
+          </button>
+
+          <button
+            class="chs-icon-btn ${hasTools && _logPanelOpen ? "chs-icon-btn--active" : ""}"
+            title="Логи инструментов"
+            @click=${(e: MouseEvent) => {
+              _logPanelOpen = !_logPanelOpen;
+              const root = (e.currentTarget as Element).closest("#chs-root") as HTMLElement | null;
+              root?.classList.toggle("chs-root--panel", _logPanelOpen);
+              (e.currentTarget as HTMLElement).classList.toggle("chs-icon-btn--active", _logPanelOpen);
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            ${hasTools ? html`<span class="chs-badge">${props.toolMessages.length}</span>` : nothing}
+          </button>
+        </div>
+      </header>
+
+      <!-- ── Body ── -->
+      <div class="chs-body">
+
+        <!-- Feed -->
+        <div class="chs-feed-wrap">
+          <div class="chs-feed" id="chs-feed">
+
+            ${isEmpty ? html`
+              <div class="chs-empty">
+                <div class="chs-empty-glyph">◈</div>
+                <p class="chs-empty-title">${props.assistantName}</p>
+                <p class="chs-empty-sub">Спроси что угодно — я готов.</p>
+              </div>` : nothing}
+
+            ${groups.map(g => {
+              const isUser = g.role === "user" || g.role === "User";
+              return html`
+                <div class="chs-group ${isUser ? "chs-group--user" : "chs-group--bot"}">
+                  <div class="chs-av-wrap">${avatarTpl(g.role, props)}</div>
+                  <div class="chs-bubbles">
+                    ${g.messages.map(msg => {
+                      const text = extractTextCached(msg) ?? "";
+                      return text
+                        ? html`<div class="chs-bubble">${unsafeHTML(renderMd(text))}</div>`
+                        : nothing;
+                    })}
+                  </div>
+                </div>`;
+            })}
+
+            ${props.stream ? html`
+              <div class="chs-group chs-group--bot chs-group--live">
+                <div class="chs-av-wrap">${avatarTpl("assistant", props)}</div>
+                <div class="chs-bubbles">
+                  <div class="chs-bubble">${unsafeHTML(renderMd(props.stream))}</div>
+                </div>
+              </div>` : nothing}
+
+            ${props.loading && !props.stream ? html`
+              <div class="chs-group chs-group--bot">
+                <div class="chs-av-wrap">${avatarTpl("assistant", props)}</div>
+                <div class="chs-bubbles">
+                  <div class="chs-dots"><span></span><span></span><span></span></div>
+                </div>
+              </div>` : nothing}
+
           </div>
-          ${!props.connected
-            ? html`<p class="sc-notice">Connecting…</p>`
-            : nothing}
-          ${props.error
-            ? html`<p class="sc-notice sc-notice--err">${props.error}</p>`
-            : nothing}
-        </div>
-      </div>
 
-      <!-- ── Tool log panel ── -->
-      ${hasTools
-        ? html`
-          <div class="sc-panel">
-            <div class="sc-panel-hd">
-              <span>Tool Logs</span>
-              <span class="sc-panel-badge">${props.toolMessages.length}</span>
+          <!-- Input -->
+          <div class="chs-input-area">
+            <div class="chs-input-box">
+              <textarea
+                class="chs-input"
+                placeholder="Напишите сообщение…"
+                .value=${props.draft}
+                ?disabled=${!props.canSend && !props.canAbort}
+                @input=${(e: Event) => {
+                  const el = e.target as HTMLTextAreaElement;
+                  props.onDraftChange(el.value);
+                  el.style.height = "auto";
+                  el.style.height = Math.min(el.scrollHeight, 200) + "px";
+                }}
+                @keydown=${(e: KeyboardEvent) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (props.canSend && props.draft.trim()) props.onSend();
+                  }
+                }}
+              ></textarea>
+              <div class="chs-input-btn-wrap">
+                ${props.canAbort
+                  ? html`<button class="chs-send-btn chs-send-btn--stop"
+                      @click=${() => props.onAbort?.()}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="4" width="16" height="16" rx="3"/>
+                      </svg>
+                    </button>`
+                  : html`<button class="chs-send-btn"
+                      ?disabled=${!props.canSend || !props.draft.trim()}
+                      @click=${() => props.onSend()}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="19" x2="12" y2="5"/>
+                        <polyline points="5 12 12 5 19 12"/>
+                      </svg>
+                    </button>`}
+              </div>
             </div>
-            <div class="sc-panel-bd">
-              ${props.toolMessages.map((msg, i) => renderToolLog(msg, i))}
-            </div>
-          </div>`
-        : nothing}
+            ${!props.connected
+              ? html`<p class="chs-status">Подключение…</p>`
+              : props.error
+              ? html`<p class="chs-status chs-status--err">${props.error}</p>`
+              : nothing}
+          </div>
+        </div>
+
+        <!-- Tool log panel -->
+        <aside class="chs-panel" id="chs-panel">
+          <div class="chs-panel-hd">
+            <span>Логи инструментов</span>
+            <button class="chs-icon-btn" @click=${(e: MouseEvent) => {
+              _logPanelOpen = false;
+              const root = (e.currentTarget as Element).closest("#chs-root") as HTMLElement | null;
+              root?.classList.remove("chs-root--panel");
+              root?.querySelector(".chs-icon-btn--active")?.classList.remove("chs-icon-btn--active");
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="chs-panel-bd">
+            ${props.toolMessages.length === 0
+              ? html`<p class="chs-panel-empty">Нет активных логов</p>`
+              : props.toolMessages.map((m, i) => toolLogTpl(m, i))}
+          </div>
+        </aside>
+
+      </div>
     </div>
   `;
 }

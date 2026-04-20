@@ -130,7 +130,7 @@ import {
   resolveModelPrimary,
   sortLocaleStrings,
 } from "./views/agents-utils.ts";
-import { renderChat } from "./views/chat.ts";
+import { renderChatSimple } from "./views/chat-simple.ts";
 import { renderCommandPalette } from "./views/command-palette.ts";
 import { getPresetById, type ConfigPresetId } from "./views/config-presets.ts";
 import {
@@ -2193,7 +2193,7 @@ export function renderApp(state: AppViewState) {
             )
           : nothing}
         ${state.tab === "chat"
-          ? renderChat({
+          ? renderChatSimple({
               sessionKey: state.sessionKey,
               onSessionKeyChange: (next) => {
                 switchChatSession(state, next);
