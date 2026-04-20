@@ -1290,42 +1290,102 @@ export function renderApp(state: AppViewState) {
             </div>
             <div class="sidebar-shell__body">
               <nav class="sidebar-nav">
-                ${TAB_GROUPS.map((group) => {
-                  const isGroupCollapsed = state.settings.navGroupsCollapsed[group.label] ?? false;
-                  const hasActiveTab = group.tabs.some((tab) => tab === state.tab);
-                  const showItems = navCollapsed || hasActiveTab || !isGroupCollapsed;
+                ${(() => {
+                  type TabGroup = (typeof TAB_GROUPS)[number];
+                  const renderGroup = (
+                    group: TabGroup,
+                    { nested = false }: { nested?: boolean } = {},
+                  ) => {
+                    const isGroupCollapsed =
+                      state.settings.navGroupsCollapsed[group.label] ?? false;
+                    const hasActiveTab = group.tabs.some((tab) => tab === state.tab);
+                    const showItems = navCollapsed || hasActiveTab || !isGroupCollapsed;
+                    const sectionClass = [
+                      "nav-section",
+                      nested ? "nav-section--nested" : "",
+                      !showItems ? "nav-section--collapsed" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+
+                    return html`
+                      <section class=${sectionClass}>
+                        ${!navCollapsed
+                          ? html`
+                              <button
+                                class="nav-section__label"
+                                @click=${() => {
+                                  const next = { ...state.settings.navGroupsCollapsed };
+                                  next[group.label] = !isGroupCollapsed;
+                                  state.applySettings({
+                                    ...state.settings,
+                                    navGroupsCollapsed: next,
+                                  });
+                                }}
+                                aria-expanded=${showItems}
+                              >
+                                <span class="nav-section__label-text"
+                                  >${t(`nav.${group.label}`)}</span
+                                >
+                                <span class="nav-section__chevron"
+                                  >${icons.chevronDown}</span
+                                >
+                              </button>
+                            `
+                          : nothing}
+                        <div class="nav-section__items">
+                          ${group.tabs.map((tab) =>
+                            renderTab(state, tab, { collapsed: navCollapsed }),
+                          )}
+                        </div>
+                      </section>
+                    `;
+                  };
+
+                  if (navCollapsed) {
+                    return TAB_GROUPS.map((group) => renderGroup(group));
+                  }
+
+                  const [chatGroup, ...otherGroups] = TAB_GROUPS;
+                  const isMoreCollapsed =
+                    state.settings.navGroupsCollapsed.more ?? false;
+                  const moreHasActive = otherGroups.some((g) =>
+                    g.tabs.some((tab) => tab === state.tab),
+                  );
+                  const showMore = moreHasActive || !isMoreCollapsed;
 
                   return html`
-                    <section class="nav-section ${!showItems ? "nav-section--collapsed" : ""}">
-                      ${!navCollapsed
-                        ? html`
-                            <button
-                              class="nav-section__label"
-                              @click=${() => {
-                                const next = { ...state.settings.navGroupsCollapsed };
-                                next[group.label] = !isGroupCollapsed;
-                                state.applySettings({
-                                  ...state.settings,
-                                  navGroupsCollapsed: next,
-                                });
-                              }}
-                              aria-expanded=${showItems}
-                            >
-                              <span class="nav-section__label-text"
-                                >${t(`nav.${group.label}`)}</span
-                              >
-                              <span class="nav-section__chevron"> ${icons.chevronDown} </span>
-                            </button>
-                          `
-                        : nothing}
-                      <div class="nav-section__items">
-                        ${group.tabs.map((tab) =>
-                          renderTab(state, tab, { collapsed: navCollapsed }),
+                    ${renderGroup(chatGroup)}
+                    <section
+                      class="nav-section nav-section--more ${!showMore
+                        ? "nav-section--collapsed"
+                        : ""}"
+                    >
+                      <button
+                        class="nav-section__label nav-section__label--more"
+                        @click=${() => {
+                          const next = { ...state.settings.navGroupsCollapsed };
+                          next.more = !isMoreCollapsed;
+                          state.applySettings({
+                            ...state.settings,
+                            navGroupsCollapsed: next,
+                          });
+                        }}
+                        aria-expanded=${showMore}
+                      >
+                        <span class="nav-section__label-text">More</span>
+                        <span class="nav-section__chevron"
+                          >${icons.chevronDown}</span
+                        >
+                      </button>
+                      <div class="nav-section__items nav-section__items--nested">
+                        ${otherGroups.map((group) =>
+                          renderGroup(group, { nested: true }),
                         )}
                       </div>
                     </section>
                   `;
-                })}
+                })()}
               </nav>
             </div>
             <div class="sidebar-shell__footer">

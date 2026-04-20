@@ -550,6 +550,45 @@
   transform: rotate(-90deg);
 }
 
+/* "More" meta-section — groups control/agent/settings under one expandable header */
+.nav-section--more > .nav-section__label {
+  color: color-mix(in srgb, var(--muted) 60%, var(--text) 40%);
+}
+
+.nav-section__items--nested {
+  display: grid;
+  gap: 8px;
+  padding: 4px 0 2px 8px;
+  margin-left: 6px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.nav-section--collapsed > .nav-section__items--nested {
+  display: none;
+}
+
+.nav-section--nested {
+  margin-bottom: 4px;
+  gap: 2px;
+}
+
+.nav-section--nested > .nav-section__label {
+  min-height: 22px;
+  padding: 0 8px;
+  opacity: 0.85;
+}
+
+.nav-section--nested .nav-section__label-text {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.nav-section--nested .nav-section__chevron svg {
+  width: 10px;
+  height: 10px;
+}
+
 .nav-item {
   position: relative;
   display: flex;

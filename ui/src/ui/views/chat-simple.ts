@@ -19,6 +19,10 @@ interface MsgGroup {
   messages: unknown[];
 }
 
+function isUserRole(role: string): boolean {
+  return role.toLowerCase() === "user";
+}
+
 function groupMessages(messages: unknown[]): MsgGroup[] {
   const groups: MsgGroup[] = [];
   for (const msg of messages) {
@@ -49,8 +53,7 @@ function renderMd(text: string): string {
 }
 
 function avatarTpl(role: string, props: ChatProps): TemplateResult {
-  const isUser = role === "user" || role === "User";
-  if (isUser) {
+  if (isUserRole(role)) {
     return html`<div class="chs-av chs-av--user">You</div>`;
   }
   if (props.assistantAvatarUrl) {
@@ -58,6 +61,19 @@ function avatarTpl(role: string, props: ChatProps): TemplateResult {
   }
   const letter = (props.assistantName ?? "A")[0]?.toUpperCase() ?? "A";
   return html`<div class="chs-av chs-av--bot">${letter}</div>`;
+}
+
+function extractAttachmentSummary(msg: unknown): string {
+  const n = normalizeMessage(msg);
+  const labels: string[] = [];
+  for (const item of n.content) {
+    if (item.type === "attachment" && item.attachment) {
+      const kind = item.attachment.kind;
+      const icon = kind === "image" ? "🖼" : kind === "audio" ? "🎧" : kind === "video" ? "🎬" : "📎";
+      labels.push(`${icon} ${item.attachment.label || kind}`);
+    }
+  }
+  return labels.join("  ·  ");
 }
 
 function toolLogTpl(msg: unknown, i: number): TemplateResult {
@@ -126,7 +142,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
         <div class="chs-header-actions">
           <button
             class="chs-pill ${isThinking ? "chs-pill--on" : ""}"
-            title=${isThinking ? "Thinking ON — нажми чтобы выключить" : "Thinking OFF — нажми чтобы включить"}
+            title=${isThinking ? "Thinking on — click to switch to Instant" : "Instant mode — click to enable Thinking"}
             @click=${() => sendCmd(props, isThinking ? "/thinking off" : "/thinking on")}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -143,7 +159,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
 
           <button
             class="chs-icon-btn"
-            title="Обновить чат"
+            title="Refresh chat"
             @click=${() => props.onRefresh()}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -154,7 +170,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
 
           <button
             class="chs-icon-btn ${hasTools && _logPanelOpen ? "chs-icon-btn--active" : ""}"
-            title="Логи инструментов"
+            title="Activity panel"
             @click=${(e: MouseEvent) => {
               _logPanelOpen = !_logPanelOpen;
               const root = (e.currentTarget as Element).closest("#chs-root") as HTMLElement | null;
@@ -181,27 +197,36 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
             ${isEmpty ? html`
               <div class="chs-empty">
                 <div class="chs-empty-glyph">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="1.6"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
+                  ${props.assistantAvatarUrl
+                    ? html`<img src=${props.assistantAvatarUrl} alt="" />`
+                    : html`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.6"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>`}
                 </div>
-                <p class="chs-empty-title">${props.assistantName}</p>
-                <p class="chs-empty-sub">Ask me anything.</p>
+                <p class="chs-empty-title">${props.assistantName ?? "Assistant"}</p>
+                <p class="chs-empty-sub">How can I help you today?</p>
               </div>` : nothing}
 
             ${groups.map(g => {
-              const isUser = g.role === "user" || g.role === "User";
+              const isUser = isUserRole(g.role);
               return html`
                 <div class="chs-group ${isUser ? "chs-group--user" : "chs-group--bot"}">
                   <div class="chs-av-wrap">${avatarTpl(g.role, props)}</div>
                   <div class="chs-bubbles">
                     ${g.messages.map(msg => {
                       const text = extractTextCached(msg) ?? "";
-                      return text
-                        ? html`<div class="chs-bubble">${unsafeHTML(renderMd(text))}</div>`
-                        : nothing;
+                      const attachments = extractAttachmentSummary(msg);
+                      if (!text && !attachments) {
+                        return isUser
+                          ? html`<div class="chs-bubble chs-bubble--empty">—</div>`
+                          : nothing;
+                      }
+                      return html`<div class="chs-bubble">
+                        ${text ? unsafeHTML(renderMd(text)) : nothing}
+                        ${attachments ? html`<div class="chs-attach">${attachments}</div>` : nothing}
+                      </div>`;
                     })}
                   </div>
                 </div>`;
@@ -267,18 +292,18 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
               </div>
             </div>
             ${!props.connected
-              ? html`<p class="chs-status">Подключение…</p>`
+              ? html`<p class="chs-status">Connecting…</p>`
               : props.error
               ? html`<p class="chs-status chs-status--err">${props.error}</p>`
               : nothing}
           </div>
         </div>
 
-        <!-- Tool log panel -->
+        <!-- Activity / tool log side panel -->
         <aside class="chs-panel" id="chs-panel">
           <div class="chs-panel-hd">
-            <span>Логи инструментов</span>
-            <button class="chs-icon-btn" @click=${(e: MouseEvent) => {
+            <span>Activity</span>
+            <button class="chs-icon-btn" title="Close panel" @click=${(e: MouseEvent) => {
               _logPanelOpen = false;
               const root = (e.currentTarget as Element).closest("#chs-root") as HTMLElement | null;
               root?.classList.remove("chs-root--panel");
@@ -292,7 +317,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
           </div>
           <div class="chs-panel-bd">
             ${props.toolMessages.length === 0
-              ? html`<p class="chs-panel-empty">Нет активных логов</p>`
+              ? html`<p class="chs-panel-empty">No tool activity yet.<br/>Reasoning and tool calls will appear here.</p>`
               : props.toolMessages.map((m, i) => toolLogTpl(m, i))}
           </div>
         </aside>
