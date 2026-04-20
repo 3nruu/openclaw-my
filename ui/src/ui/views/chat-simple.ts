@@ -53,8 +53,8 @@ function avatarTpl(role: string, props: ChatProps): TemplateResult {
   if (isUser) {
     return html`<div class="chs-av chs-av--user">You</div>`;
   }
-  if (props.assistantAvatar) {
-    return html`<img class="chs-av chs-av--bot" src=${props.assistantAvatar} alt="" />`;
+  if (props.assistantAvatarUrl) {
+    return html`<img class="chs-av chs-av--bot" src=${props.assistantAvatarUrl} alt="" />`;
   }
   const letter = (props.assistantName ?? "A")[0]?.toUpperCase() ?? "A";
   return html`<div class="chs-av chs-av--bot">${letter}</div>`;
@@ -111,7 +111,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
           </svg>
           <input
             class="chs-search"
-            placeholder="Поиск по чату…"
+            placeholder="Search…"
             type="search"
             autocomplete="off"
             @input=${(e: Event) => {
@@ -180,9 +180,15 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
 
             ${isEmpty ? html`
               <div class="chs-empty">
-                <div class="chs-empty-glyph">◈</div>
+                <div class="chs-empty-glyph">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
                 <p class="chs-empty-title">${props.assistantName}</p>
-                <p class="chs-empty-sub">Спроси что угодно — я готов.</p>
+                <p class="chs-empty-sub">Ask me anything.</p>
               </div>` : nothing}
 
             ${groups.map(g => {
@@ -224,7 +230,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
             <div class="chs-input-box">
               <textarea
                 class="chs-input"
-                placeholder="Напишите сообщение…"
+                placeholder="Message…"
                 .value=${props.draft}
                 ?disabled=${!props.canSend && !props.canAbort}
                 @input=${(e: Event) => {

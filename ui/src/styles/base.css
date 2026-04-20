@@ -33,16 +33,16 @@
   --border-strong: #2e3040;
   --border-hover: #3e4050;
   --input: #1e2028;
-  --ring: #ff5c5c;
+  --ring: #7c6af7;
 
-  /* Accent - Punchy signature red */
-  --accent: #ff5c5c;
-  --accent-hover: #ff7070;
-  --accent-muted: #ff5c5c;
-  --accent-subtle: rgba(255, 92, 92, 0.1);
-  --accent-foreground: #fafafa;
-  --accent-glow: rgba(255, 92, 92, 0.2);
-  --primary: #ff5c5c;
+  /* Accent - Violet */
+  --accent: #7c6af7;
+  --accent-hover: #8b7df8;
+  --accent-muted: #7c6af7;
+  --accent-subtle: rgba(124, 106, 247, 0.12);
+  --accent-foreground: #ffffff;
+  --accent-glow: rgba(124, 106, 247, 0.25);
+  --primary: #7c6af7;
   --primary-foreground: #ffffff;
 
   /* Secondary */
@@ -67,7 +67,7 @@
   --info: #3b82f6;
 
   /* Focus */
-  --focus: rgba(255, 92, 92, 0.2);
+  --focus: rgba(124, 106, 247, 0.2);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--ring) 80%, transparent);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 3px var(--ring), 0 0 16px var(--accent-glow);
 
