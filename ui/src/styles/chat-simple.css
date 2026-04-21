@@ -478,6 +478,16 @@ img.chs-av--bot { object-fit: cover; }
   padding: 0;
 }
 .chs-input::placeholder { color: var(--cm2); }
+/* Suppress the global :focus-visible ring on controls inside the chat — the
+   chat surface renders its own focus indicators (input-box border, pill ring). */
+.chs-root :focus-visible,
+.chs-root .chs-input:focus,
+.chs-root .chs-input:focus-visible,
+.chs-root .chs-search:focus,
+.chs-root .chs-search:focus-visible {
+  box-shadow: none;
+  outline: none;
+}
 
 .chs-input-btn-wrap {
   display: flex;

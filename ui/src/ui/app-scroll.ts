@@ -28,8 +28,9 @@ export function scheduleChatScroll(host: ScrollHost, force = false, smooth = fal
     host.chatScrollTimeout = null;
   }
   const pickScrollTarget = () => {
-    const container = queryHost(host, ".chat-thread") as HTMLElement | null;
-    if (container) {
+    for (const selector of [".chat-thread", ".chs-feed"]) {
+      const container = queryHost(host, selector) as HTMLElement | null;
+      if (!container) continue;
       const overflowY = getComputedStyle(container).overflowY;
       const canScroll =
         overflowY === "auto" ||

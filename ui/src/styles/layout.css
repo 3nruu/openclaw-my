@@ -110,6 +110,29 @@
   display: none;
 }
 
+/* In chat focus mode the sidebar is hidden and there is no other way back to
+   it, so surface this toggle on desktop as an exit affordance. */
+.topbar-nav-toggle--focus-exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+.topbar-nav-toggle--focus-exit:hover {
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border-color: var(--border-strong);
+}
+
 .topnav-shell__actions {
   display: flex;
   align-items: center;

@@ -1221,13 +1221,28 @@ export function renderApp(state: AppViewState) {
         <div class="topnav-shell">
           <button
             type="button"
-            class="topbar-nav-toggle"
+            class="topbar-nav-toggle ${chatFocus ? "topbar-nav-toggle--focus-exit" : ""}"
             @click=${() => {
+              if (chatFocus && !state.onboarding) {
+                state.applySettings({
+                  ...state.settings,
+                  chatFocusMode: false,
+                });
+                return;
+              }
               state.navDrawerOpen = !navDrawerOpen;
             }}
-            title="${navDrawerOpen ? t("nav.collapse") : t("nav.expand")}"
-            aria-label="${navDrawerOpen ? t("nav.collapse") : t("nav.expand")}"
-            aria-expanded=${navDrawerOpen}
+            title="${chatFocus
+              ? t("nav.expand")
+              : navDrawerOpen
+                ? t("nav.collapse")
+                : t("nav.expand")}"
+            aria-label="${chatFocus
+              ? t("nav.expand")
+              : navDrawerOpen
+                ? t("nav.collapse")
+                : t("nav.expand")}"
+            aria-expanded=${chatFocus ? false : navDrawerOpen}
           >
             <span class="nav-collapse-toggle__icon" aria-hidden="true">${icons.menu}</span>
           </button>
