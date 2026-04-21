@@ -6,33 +6,34 @@
 
 /* ── Design tokens ────────────────────────────────────────────── */
 .chs-root {
-  /* Accent — soft lavender on an off-white canvas */
-  --ca:       #7c6af7;
-  --ca-hov:   #6d5ce8;
-  --ca-soft:  rgba(124, 106, 247, 0.10);
-  --ca-wash:  rgba(124, 106, 247, 0.05);
-  --ca-text:  #5b48e0;
+  /* Bridge the local short names to the global theme tokens so the
+     simplified chat follows light/dark/brand themes automatically. */
+  --ca:       var(--accent);
+  --ca-hov:   var(--accent-hover);
+  --ca-soft:  var(--accent-subtle);
+  --ca-wash:  color-mix(in srgb, var(--accent) 6%, transparent);
+  --ca-text:  var(--accent);
 
   /* Surfaces */
-  --cb:  #fbfaff;          /* app/feed background — lavender-tinted white */
-  --cs:  #ffffff;          /* header/input surface */
-  --cs2: #f4f3fa;          /* secondary surface */
-  --cbr: #ecebf3;          /* border */
-  --cbr2:#dbd9e5;          /* border-strong */
+  --cb:  var(--bg);
+  --cs:  var(--card);
+  --cs2: var(--bg-muted);
+  --cbr: var(--border);
+  --cbr2:var(--border-strong);
 
   /* Text */
-  --ct:  #1a1a22;          /* strong */
-  --ct2: #3a3a46;
-  --cm:  #74747e;          /* muted */
-  --cm2: #a8a8b2;          /* placeholder */
+  --ct:  var(--text-strong);
+  --ct2: var(--text);
+  --cm:  var(--muted);
+  --cm2: var(--muted-foreground);
 
-  /* User bubble */
-  --cu-bg:   #ede9fe;
-  --cu-text: #4a2ec2;
+  /* User bubble — solid accent pill */
+  --cu-bg:   var(--accent);
+  --cu-text: var(--accent-foreground);
 
   /* Danger */
-  --cd:      #ef4444;
-  --cd-soft: rgba(239, 68, 68, 0.10);
+  --cd:      var(--danger);
+  --cd-soft: var(--danger-subtle);
 
   /* Layout */
   display: flex;
@@ -81,7 +82,7 @@
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .chs-search-wrap:hover {
-  background: #eeedf6;
+  background: var(--bg-hover);
 }
 .chs-search-wrap:focus-within {
   background: var(--cs);
@@ -302,23 +303,28 @@ img.chs-av--bot { object-fit: cover; }
   max-width: min(640px, calc(100% - 48px));
 }
 
-/* Assistant bubble — transparent, reads like flowing text */
+/* Assistant bubble — bordered card that adapts to theme */
 .chs-bubble {
-  font-size: 15px;
-  line-height: 1.75;
+  font-size: 14.5px;
+  line-height: 1.65;
   color: var(--ct);
-  padding: 2px 0;
+  padding: 10px 14px;
+  background: var(--cs);
+  border: 1px solid var(--cbr);
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: var(--shadow-sm);
 }
 
-/* User bubble — soft lavender pill */
+/* User bubble — accent pill on the right */
 .chs-group--user .chs-bubble {
   background: var(--cu-bg);
   color: var(--cu-text);
+  border-color: transparent;
   border-radius: 18px 18px 6px 18px;
   padding: 10px 16px;
   font-size: 14.5px;
   line-height: 1.55;
-  box-shadow: 0 1px 2px rgba(74, 46, 194, 0.04);
+  box-shadow: 0 1px 2px var(--ca-soft);
 }
 
 .chs-bubble--empty {
@@ -364,8 +370,8 @@ img.chs-av--bot { object-fit: cover; }
 .chs-bubble code {
   font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
   font-size: 0.875em;
-  background: #f1efff;
-  border: 1px solid #e2ddff;
+  background: var(--ca-soft);
+  border: 1px solid color-mix(in srgb, var(--ca) 20%, transparent);
   border-radius: 5px;
   padding: 2px 6px;
   color: var(--ca-text);
@@ -451,16 +457,14 @@ img.chs-av--bot { object-fit: cover; }
   transition: border-color 0.15s, box-shadow 0.15s;
   max-width: 760px;
   margin: 0 auto;
-  box-shadow:
-    0 1px 2px rgba(16, 16, 32, 0.04),
-    0 8px 24px -16px rgba(16, 16, 32, 0.08);
+  position: relative;
+  box-shadow: var(--shadow-sm);
 }
 .chs-input-box:focus-within {
   border-color: var(--ca);
   box-shadow:
     0 0 0 3px var(--ca-soft),
-    0 1px 2px rgba(16, 16, 32, 0.04),
-    0 8px 24px -16px rgba(16, 16, 32, 0.10);
+    var(--shadow-sm);
 }
 
 .chs-input {
@@ -602,7 +606,7 @@ img.chs-av--bot { object-fit: cover; }
   font-family: "JetBrains Mono", "Fira Code", monospace;
   color: var(--ca-text);
   border-bottom: 1px solid var(--cbr);
-  background: #f1efff;
+  background: var(--ca-soft);
 }
 .chs-log-body {
   padding: 8px 12px;

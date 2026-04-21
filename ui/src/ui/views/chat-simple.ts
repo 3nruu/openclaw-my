@@ -5,12 +5,264 @@ import { marked } from "marked";
 import type { ChatProps } from "./chat.ts";
 import { extractTextCached } from "../chat/message-extract.ts";
 import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
+import {
+  SLASH_COMMANDS,
+  CATEGORY_LABELS,
+  getSlashCommandCompletions,
+  getHiddenCommandCount,
+  type SlashCommandDef,
+  type SlashCommandCategory,
+} from "../chat/slash-commands.ts";
+import { icons } from "../icons.ts";
 
 marked.use({ async: false, breaks: true, gfm: true });
 
 // ── Module-level UI state (no re-render needed for these) ─────────────────
 
 let _logPanelOpen = false;
+
+// Ephemeral slash-menu state — mirrors the original chat view.
+const slashState = {
+  open: false,
+  items: [] as SlashCommandDef[],
+  index: 0,
+  mode: "command" as "command" | "args",
+  command: null as SlashCommandDef | null,
+  argItems: [] as string[],
+  expanded: false,
+};
+
+function resetSlashState() {
+  slashState.mode = "command";
+  slashState.command = null;
+  slashState.argItems = [];
+  slashState.items = [];
+  slashState.expanded = false;
+}
+
+function updateSlashMenu(value: string, requestUpdate: () => void): void {
+  const argMatch = value.match(/^\/(\S+)\s(.*)$/);
+  if (argMatch) {
+    const cmdName = argMatch[1].toLowerCase();
+    const argFilter = argMatch[2].toLowerCase();
+    const cmd = SLASH_COMMANDS.find((c) => c.name === cmdName);
+    if (cmd?.argOptions?.length) {
+      const filtered = argFilter
+        ? cmd.argOptions.filter((opt) => opt.toLowerCase().startsWith(argFilter))
+        : cmd.argOptions;
+      if (filtered.length > 0) {
+        slashState.mode = "args";
+        slashState.command = cmd;
+        slashState.argItems = filtered;
+        slashState.open = true;
+        slashState.index = 0;
+        slashState.items = [];
+        requestUpdate();
+        return;
+      }
+    }
+    slashState.open = false;
+    resetSlashState();
+    requestUpdate();
+    return;
+  }
+
+  const match = value.match(/^\/(\S*)$/);
+  if (match) {
+    const items = getSlashCommandCompletions(match[1], { showAll: slashState.expanded });
+    slashState.items = items;
+    slashState.open = items.length > 0;
+    slashState.index = 0;
+    slashState.mode = "command";
+    slashState.command = null;
+    slashState.argItems = [];
+  } else {
+    slashState.open = false;
+    resetSlashState();
+  }
+  requestUpdate();
+}
+
+function selectSlashCommand(
+  cmd: SlashCommandDef,
+  props: ChatProps,
+  requestUpdate: () => void,
+): void {
+  if (cmd.argOptions?.length) {
+    props.onDraftChange(`/${cmd.name} `);
+    slashState.mode = "args";
+    slashState.command = cmd;
+    slashState.argItems = cmd.argOptions;
+    slashState.open = true;
+    slashState.index = 0;
+    slashState.items = [];
+    requestUpdate();
+    return;
+  }
+  slashState.open = false;
+  resetSlashState();
+  if (cmd.executeLocal && !cmd.args) {
+    props.onDraftChange(`/${cmd.name}`);
+    requestUpdate();
+    props.onSend();
+  } else {
+    props.onDraftChange(`/${cmd.name} `);
+    requestUpdate();
+  }
+}
+
+function tabCompleteSlashCommand(
+  cmd: SlashCommandDef,
+  props: ChatProps,
+  requestUpdate: () => void,
+): void {
+  if (cmd.argOptions?.length) {
+    props.onDraftChange(`/${cmd.name} `);
+    slashState.mode = "args";
+    slashState.command = cmd;
+    slashState.argItems = cmd.argOptions;
+    slashState.open = true;
+    slashState.index = 0;
+    slashState.items = [];
+    requestUpdate();
+    return;
+  }
+  slashState.open = false;
+  resetSlashState();
+  props.onDraftChange(cmd.args ? `/${cmd.name} ` : `/${cmd.name}`);
+  requestUpdate();
+}
+
+function selectSlashArg(
+  arg: string,
+  props: ChatProps,
+  requestUpdate: () => void,
+  execute: boolean,
+): void {
+  const cmdName = slashState.command?.name ?? "";
+  slashState.open = false;
+  resetSlashState();
+  props.onDraftChange(`/${cmdName} ${arg}`);
+  requestUpdate();
+  if (execute) props.onSend();
+}
+
+function renderSlashMenu(
+  requestUpdate: () => void,
+  props: ChatProps,
+): TemplateResult | typeof nothing {
+  if (!slashState.open) return nothing;
+
+  if (slashState.mode === "args" && slashState.command && slashState.argItems.length > 0) {
+    return html`
+      <div class="slash-menu" role="listbox" aria-label="Command arguments">
+        <div class="slash-menu-group">
+          <div class="slash-menu-group__label">
+            /${slashState.command.name} ${slashState.command.description}
+          </div>
+          ${slashState.argItems.map(
+            (arg, i) => html`
+              <div
+                class="slash-menu-item ${i === slashState.index ? "slash-menu-item--active" : ""}"
+                role="option"
+                aria-selected=${i === slashState.index}
+                @click=${() => selectSlashArg(arg, props, requestUpdate, true)}
+                @mouseenter=${() => {
+                  slashState.index = i;
+                  requestUpdate();
+                }}
+              >
+                ${slashState.command?.icon
+                  ? html`<span class="slash-menu-icon">${icons[slashState.command.icon]}</span>`
+                  : nothing}
+                <span class="slash-menu-name">${arg}</span>
+                <span class="slash-menu-desc">/${slashState.command?.name} ${arg}</span>
+              </div>
+            `,
+          )}
+        </div>
+        <div class="slash-menu-footer">
+          <kbd>↑↓</kbd> navigate <kbd>Tab</kbd> fill <kbd>Enter</kbd> run <kbd>Esc</kbd> close
+        </div>
+      </div>
+    `;
+  }
+
+  if (slashState.items.length === 0) return nothing;
+
+  const grouped = new Map<
+    SlashCommandCategory,
+    Array<{ cmd: SlashCommandDef; globalIdx: number }>
+  >();
+  for (let i = 0; i < slashState.items.length; i++) {
+    const cmd = slashState.items[i];
+    const cat = cmd.category ?? "session";
+    let list = grouped.get(cat);
+    if (!list) {
+      list = [];
+      grouped.set(cat, list);
+    }
+    list.push({ cmd, globalIdx: i });
+  }
+
+  const sections: TemplateResult[] = [];
+  for (const [cat, entries] of grouped) {
+    sections.push(html`
+      <div class="slash-menu-group">
+        <div class="slash-menu-group__label">${CATEGORY_LABELS[cat]}</div>
+        ${entries.map(
+          ({ cmd, globalIdx }) => html`
+            <div
+              class="slash-menu-item ${globalIdx === slashState.index
+                ? "slash-menu-item--active"
+                : ""}"
+              role="option"
+              aria-selected=${globalIdx === slashState.index}
+              @click=${() => selectSlashCommand(cmd, props, requestUpdate)}
+              @mouseenter=${() => {
+                slashState.index = globalIdx;
+                requestUpdate();
+              }}
+            >
+              ${cmd.icon ? html`<span class="slash-menu-icon">${icons[cmd.icon]}</span>` : nothing}
+              <span class="slash-menu-name">/${cmd.name}</span>
+              ${cmd.args ? html`<span class="slash-menu-args">${cmd.args}</span>` : nothing}
+              <span class="slash-menu-desc">${cmd.description}</span>
+              ${cmd.argOptions?.length
+                ? html`<span class="slash-menu-badge">${cmd.argOptions.length} options</span>`
+                : cmd.executeLocal && !cmd.args
+                  ? html`<span class="slash-menu-badge">instant</span>`
+                  : nothing}
+            </div>
+          `,
+        )}
+      </div>
+    `);
+  }
+
+  const hiddenCount = slashState.expanded ? 0 : getHiddenCommandCount();
+  return html`
+    <div class="slash-menu" role="listbox" aria-label="Slash commands">
+      ${sections}
+      ${hiddenCount > 0
+        ? html`<button
+            class="slash-menu-show-more"
+            @click=${(e: Event) => {
+              e.preventDefault();
+              e.stopPropagation();
+              slashState.expanded = true;
+              updateSlashMenu(props.draft, requestUpdate);
+            }}
+          >
+            Show ${hiddenCount} more command${hiddenCount !== 1 ? "s" : ""}
+          </button>`
+        : nothing}
+      <div class="slash-menu-footer">
+        <kbd>↑↓</kbd> navigate <kbd>Tab</kbd> fill <kbd>Enter</kbd> select <kbd>Esc</kbd> close
+      </div>
+    </div>
+  `;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -114,6 +366,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
   const isEmpty = groups.length === 0 && !props.stream && !props.loading;
   const isThinking = Boolean(props.thinkingLevel);
   const hasTools = props.toolMessages.length > 0;
+  const requestUpdate = props.onRequestUpdate ?? (() => {});
 
   return html`
     <div class="chs-root" id="chs-root">
@@ -253,6 +506,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
           <!-- Input -->
           <div class="chs-input-area">
             <div class="chs-input-box">
+              ${renderSlashMenu(requestUpdate, props)}
               <textarea
                 class="chs-input"
                 placeholder="Message…"
@@ -263,8 +517,101 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
                   props.onDraftChange(el.value);
                   el.style.height = "auto";
                   el.style.height = Math.min(el.scrollHeight, 200) + "px";
+                  updateSlashMenu(el.value, requestUpdate);
+                }}
+                @blur=${() => {
+                  // Delay close so click on menu item fires first.
+                  setTimeout(() => {
+                    if (slashState.open) {
+                      slashState.open = false;
+                      resetSlashState();
+                      requestUpdate();
+                    }
+                  }, 150);
                 }}
                 @keydown=${(e: KeyboardEvent) => {
+                  // Slash menu — arg mode
+                  if (
+                    slashState.open &&
+                    slashState.mode === "args" &&
+                    slashState.argItems.length > 0
+                  ) {
+                    const len = slashState.argItems.length;
+                    switch (e.key) {
+                      case "ArrowDown":
+                        e.preventDefault();
+                        slashState.index = (slashState.index + 1) % len;
+                        requestUpdate();
+                        return;
+                      case "ArrowUp":
+                        e.preventDefault();
+                        slashState.index = (slashState.index - 1 + len) % len;
+                        requestUpdate();
+                        return;
+                      case "Tab":
+                        e.preventDefault();
+                        selectSlashArg(
+                          slashState.argItems[slashState.index],
+                          props,
+                          requestUpdate,
+                          false,
+                        );
+                        return;
+                      case "Enter":
+                        e.preventDefault();
+                        selectSlashArg(
+                          slashState.argItems[slashState.index],
+                          props,
+                          requestUpdate,
+                          true,
+                        );
+                        return;
+                      case "Escape":
+                        e.preventDefault();
+                        slashState.open = false;
+                        resetSlashState();
+                        requestUpdate();
+                        return;
+                    }
+                  }
+                  // Slash menu — command mode
+                  if (slashState.open && slashState.items.length > 0) {
+                    const len = slashState.items.length;
+                    switch (e.key) {
+                      case "ArrowDown":
+                        e.preventDefault();
+                        slashState.index = (slashState.index + 1) % len;
+                        requestUpdate();
+                        return;
+                      case "ArrowUp":
+                        e.preventDefault();
+                        slashState.index = (slashState.index - 1 + len) % len;
+                        requestUpdate();
+                        return;
+                      case "Tab":
+                        e.preventDefault();
+                        tabCompleteSlashCommand(
+                          slashState.items[slashState.index],
+                          props,
+                          requestUpdate,
+                        );
+                        return;
+                      case "Enter":
+                        e.preventDefault();
+                        selectSlashCommand(
+                          slashState.items[slashState.index],
+                          props,
+                          requestUpdate,
+                        );
+                        return;
+                      case "Escape":
+                        e.preventDefault();
+                        slashState.open = false;
+                        resetSlashState();
+                        requestUpdate();
+                        return;
+                    }
+                  }
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     if (props.canSend && props.draft.trim()) props.onSend();
