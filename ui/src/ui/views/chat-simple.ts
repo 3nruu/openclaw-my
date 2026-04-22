@@ -20,6 +20,7 @@ marked.use({ async: false, breaks: true, gfm: true });
 // ── Module-level UI state (no re-render needed for these) ─────────────────
 
 let _logPanelOpen = false;
+let _searchQuery = "";
 
 // Ephemeral slash-menu state — mirrors the original chat view.
 const slashState = {
@@ -275,17 +276,32 @@ function isUserRole(role: string): boolean {
   return role.toLowerCase() === "user";
 }
 
+function isSystemRole(role: string): boolean {
+  return role.toLowerCase() === "system";
+}
+
+function groupMatchesQuery(group: MsgGroup, query: string): boolean {
+  if (!query) return true;
+  for (const msg of group.messages) {
+    const text = extractTextCached(msg) ?? "";
+    if (text.toLowerCase().includes(query)) return true;
+  }
+  return false;
+}
+
 function groupMessages(messages: unknown[]): MsgGroup[] {
   const groups: MsgGroup[] = [];
   for (const msg of messages) {
     const n = normalizeMessage(msg);
     const role = normalizeRoleForGrouping(n.role);
-    if (role === "tool" || role === "toolResult" || role === "system") continue;
+    if (role === "tool" || role === "toolResult") continue;
+    // system messages (slash-command results like /help) render as their own "system" group
+    const groupRole = role === "system" ? "system" : role;
     const last = groups[groups.length - 1];
-    if (last && last.role === role) {
+    if (last && last.role === groupRole) {
       last.messages.push(msg);
     } else {
-      groups.push({ role, messages: [msg] });
+      groups.push({ role: groupRole, messages: [msg] });
     }
   }
   return groups;
@@ -362,8 +378,12 @@ function sendCmd(props: ChatProps, cmd: string) {
 // ── Main render ───────────────────────────────────────────────────────────
 
 export function renderChatSimple(props: ChatProps): TemplateResult {
-  const groups = groupMessages(props.messages);
-  const isEmpty = groups.length === 0 && !props.stream && !props.loading;
+  const allGroups = groupMessages(props.messages);
+  const groups = _searchQuery
+    ? allGroups.filter((g) => groupMatchesQuery(g, _searchQuery))
+    : allGroups;
+  const isEmpty = allGroups.length === 0 && !props.stream && !props.loading;
+  const noMatches = _searchQuery && groups.length === 0 && allGroups.length > 0;
   const isThinking = Boolean(props.thinkingLevel);
   const hasTools = props.toolMessages.length > 0;
   const requestUpdate = props.onRequestUpdate ?? (() => {});
@@ -383,11 +403,10 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
             placeholder="Search…"
             type="search"
             autocomplete="off"
+            .value=${_searchQuery}
             @input=${(e: Event) => {
-              const q = (e.target as HTMLInputElement).value.toLowerCase();
-              document.querySelectorAll<HTMLElement>("#chs-feed .chs-group").forEach(el => {
-                el.style.display = !q || (el.textContent ?? "").toLowerCase().includes(q) ? "" : "none";
-              });
+              _searchQuery = (e.target as HTMLInputElement).value.toLowerCase();
+              requestUpdate();
             }}
           />
         </div>
@@ -462,7 +481,26 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
                 <p class="chs-empty-sub">How can I help you today?</p>
               </div>` : nothing}
 
+            ${noMatches ? html`
+              <div class="chs-empty chs-empty--search">
+                <p class="chs-empty-sub">No messages match "${_searchQuery}".</p>
+              </div>` : nothing}
+
             ${groups.map(g => {
+              if (isSystemRole(g.role)) {
+                return html`
+                  <div class="chs-group chs-group--system">
+                    <div class="chs-bubbles">
+                      ${g.messages.map(msg => {
+                        const text = extractTextCached(msg) ?? "";
+                        if (!text) return nothing;
+                        return html`<div class="chs-bubble chs-bubble--system">
+                          ${unsafeHTML(renderMd(text))}
+                        </div>`;
+                      })}
+                    </div>
+                  </div>`;
+              }
               const isUser = isUserRole(g.role);
               return html`
                 <div class="chs-group ${isUser ? "chs-group--user" : "chs-group--bot"}">

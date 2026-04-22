@@ -332,6 +332,30 @@ img.chs-av--bot { object-fit: cover; }
   font-style: italic;
 }
 
+.chs-group--system {
+  justify-content: center;
+  margin: 4px auto;
+  width: 100%;
+  max-width: 720px;
+}
+.chs-group--system .chs-bubbles {
+  align-items: stretch;
+  width: 100%;
+}
+.chs-bubble--system {
+  background: var(--ca-wash);
+  border: 1px dashed var(--cbr);
+  color: var(--ct2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.chs-empty--search {
+  padding: 20px 16px;
+  min-height: 0;
+}
+
 .chs-attach {
   margin-top: 6px;
   font-size: 12.5px;

@@ -1307,14 +1307,22 @@ export function renderApp(state: AppViewState) {
               <nav class="sidebar-nav">
                 ${(() => {
                   type TabGroup = (typeof TAB_GROUPS)[number];
+                  const toggleGroup = (label: string, currentCollapsed: boolean) => {
+                    const next = { ...state.settings.navGroupsCollapsed };
+                    next[label] = !currentCollapsed;
+                    state.applySettings({
+                      ...state.settings,
+                      navGroupsCollapsed: next,
+                    });
+                  };
                   const renderGroup = (
                     group: TabGroup,
                     { nested = false }: { nested?: boolean } = {},
                   ) => {
                     const isGroupCollapsed =
                       state.settings.navGroupsCollapsed[group.label] ?? false;
-                    const hasActiveTab = group.tabs.some((tab) => tab === state.tab);
-                    const showItems = navCollapsed || hasActiveTab || !isGroupCollapsed;
+                    // Honor manual collapse even when an active tab lives inside this group.
+                    const showItems = navCollapsed || !isGroupCollapsed;
                     const sectionClass = [
                       "nav-section",
                       nested ? "nav-section--nested" : "",
@@ -1329,14 +1337,7 @@ export function renderApp(state: AppViewState) {
                           ? html`
                               <button
                                 class="nav-section__label"
-                                @click=${() => {
-                                  const next = { ...state.settings.navGroupsCollapsed };
-                                  next[group.label] = !isGroupCollapsed;
-                                  state.applySettings({
-                                    ...state.settings,
-                                    navGroupsCollapsed: next,
-                                  });
-                                }}
+                                @click=${() => toggleGroup(group.label, isGroupCollapsed)}
                                 aria-expanded=${showItems}
                               >
                                 <span class="nav-section__label-text"
@@ -1357,36 +1358,59 @@ export function renderApp(state: AppViewState) {
                     `;
                   };
 
-                  if (navCollapsed) {
-                    return TAB_GROUPS.map((group) => renderGroup(group));
-                  }
-
                   const [chatGroup, ...otherGroups] = TAB_GROUPS;
                   const isMoreCollapsed =
                     state.settings.navGroupsCollapsed.more ?? false;
-                  const moreHasActive = otherGroups.some((g) =>
-                    g.tabs.some((tab) => tab === state.tab),
-                  );
-                  const showMore = moreHasActive || !isMoreCollapsed;
+                  const showMoreExpanded = !isMoreCollapsed;
+                  // Compact (icon-only) mode uses its own default: start closed so the
+                  // sidebar shows chat + a single "More" icon instead of every tab.
+                  const isMoreCompactCollapsed =
+                    state.settings.navGroupsCollapsed.moreCompact ?? true;
+                  const showMoreCompact = !isMoreCompactCollapsed;
+
+                  if (navCollapsed) {
+                    return html`
+                      ${renderGroup(chatGroup)}
+                      <div class="nav-section nav-section--more-compact">
+                        <button
+                          class="nav-item nav-item--more-toggle ${showMoreCompact
+                            ? "nav-item--active"
+                            : ""}"
+                          @click=${() => toggleGroup("moreCompact", isMoreCompactCollapsed)}
+                          aria-expanded=${showMoreCompact}
+                          aria-label=${showMoreCompact ? "Hide more tabs" : "Show more tabs"}
+                          title=${showMoreCompact ? "Hide more" : "More"}
+                        >
+                          <span class="nav-item__icon" aria-hidden="true"
+                            >${icons.moreHorizontal}</span
+                          >
+                        </button>
+                        ${showMoreCompact
+                          ? html`
+                              <div class="nav-section__items nav-section__items--more-compact">
+                                ${otherGroups.flatMap((group) =>
+                                  group.tabs.map((tab) =>
+                                    renderTab(state, tab, { collapsed: true }),
+                                  ),
+                                )}
+                              </div>
+                            `
+                          : nothing}
+                      </div>
+                    `;
+                  }
 
                   return html`
                     ${renderGroup(chatGroup)}
                     <section
-                      class="nav-section nav-section--more ${!showMore
+                      class="nav-section nav-section--more ${!showMoreExpanded
                         ? "nav-section--collapsed"
                         : ""}"
                     >
                       <button
                         class="nav-section__label nav-section__label--more"
-                        @click=${() => {
-                          const next = { ...state.settings.navGroupsCollapsed };
-                          next.more = !isMoreCollapsed;
-                          state.applySettings({
-                            ...state.settings,
-                            navGroupsCollapsed: next,
-                          });
-                        }}
-                        aria-expanded=${showMore}
+                        @click=${() => toggleGroup("more", isMoreCollapsed)}
+                        aria-expanded=${showMoreExpanded}
                       >
                         <span class="nav-section__label-text">More</span>
                         <span class="nav-section__chevron"

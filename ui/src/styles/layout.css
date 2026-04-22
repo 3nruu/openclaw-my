@@ -607,6 +607,47 @@
   letter-spacing: 0.08em;
 }
 
+/* Collapsed (icon-only) sidebar: "More" toggle + flyout of non-chat tab icons */
+.nav-section--more-compact {
+  display: grid;
+  gap: 4px;
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.nav-item--more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) ease,
+    background var(--duration-fast) ease;
+}
+
+.nav-item--more-toggle:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg-hover) 72%, transparent);
+}
+
+.nav-item--more-toggle.nav-item--active {
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.nav-section__items--more-compact {
+  display: grid;
+  gap: 4px;
+}
+
 .nav-section--nested .nav-section__chevron svg {
   width: 10px;
   height: 10px;
