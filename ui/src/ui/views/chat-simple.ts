@@ -320,6 +320,16 @@ function renderMd(text: string): string {
   });
 }
 
+function highlightMatches(html: string, query: string): string {
+  if (!query) return html;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Match either a full HTML tag (pass through) OR the query (wrap in <mark>).
+  const pattern = new RegExp(`(<[^>]*>)|(${escaped})`, "gi");
+  return html.replace(pattern, (_m, tag, match) =>
+    tag ? tag : `<mark class="chs-mark">${match}</mark>`,
+  );
+}
+
 function avatarTpl(role: string, props: ChatProps): TemplateResult {
   if (isUserRole(role)) {
     return html`<div class="chs-av chs-av--user">You</div>`;
@@ -495,7 +505,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
                         const text = extractTextCached(msg) ?? "";
                         if (!text) return nothing;
                         return html`<div class="chs-bubble chs-bubble--system">
-                          ${unsafeHTML(renderMd(text))}
+                          ${unsafeHTML(highlightMatches(renderMd(text), _searchQuery))}
                         </div>`;
                       })}
                     </div>
@@ -515,7 +525,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
                           : nothing;
                       }
                       return html`<div class="chs-bubble">
-                        ${text ? unsafeHTML(renderMd(text)) : nothing}
+                        ${text ? unsafeHTML(highlightMatches(renderMd(text), _searchQuery)) : nothing}
                         ${attachments ? html`<div class="chs-attach">${attachments}</div>` : nothing}
                       </div>`;
                     })}
