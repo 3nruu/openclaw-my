@@ -3939,16 +3939,23 @@ td.data-table-key-col {
 
 .ov-cards {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 900px) {
+  .ov-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .ov-cards { grid-template-columns: 1fr; }
 }
 
 .ov-card {
   display: grid;
-  gap: 6px;
-  padding: 16px;
+  gap: 5px;
+  padding: 13px 15px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--card);
   cursor: pointer;
   text-align: left;
