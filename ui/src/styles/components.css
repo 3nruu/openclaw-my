@@ -239,6 +239,12 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Status-tinted card borders — ChannelsScreen.jsx pattern */
+.card--ok     { border-color: color-mix(in srgb, var(--ok) 18%, transparent); }
+.card--warn   { border-color: color-mix(in srgb, var(--warn) 18%, transparent); }
+.card--danger { border-color: color-mix(in srgb, var(--danger) 15%, transparent); }
+.card--muted  { border-color: var(--border); }
+
 .card-title {
   font-size: var(--text-base);
   font-weight: 600;
