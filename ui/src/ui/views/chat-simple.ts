@@ -307,6 +307,30 @@ function groupMessages(messages: unknown[]): MsgGroup[] {
   return groups;
 }
 
+function latestTimestamp(messages: unknown[]): number | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const n = normalizeMessage(messages[i]);
+    if (typeof n.timestamp === "number" && Number.isFinite(n.timestamp)) {
+      return n.timestamp;
+    }
+  }
+  return null;
+}
+
+function formatShortTime(ts: number | null): string {
+  if (ts == null) return "";
+  try {
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function groupRoleLabel(role: string, assistantName?: string | null): string {
+  if (isUserRole(role)) return "You";
+  return assistantName && assistantName.trim() ? assistantName : "Assistant";
+}
+
 function renderMd(text: string): string {
   const raw = String(marked.parse(text));
   return DOMPurify.sanitize(raw, {
@@ -332,7 +356,7 @@ function highlightMatches(html: string, query: string): string {
 
 function avatarTpl(role: string, props: ChatProps): TemplateResult {
   if (isUserRole(role)) {
-    return html`<div class="chs-av chs-av--user">You</div>`;
+    return html`<div class="chs-av chs-av--user">U</div>`;
   }
   if (props.assistantAvatarUrl) {
     return html`<img class="chs-av chs-av--bot" src=${props.assistantAvatarUrl} alt="" />`;
@@ -512,6 +536,10 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
                   </div>`;
               }
               const isUser = isUserRole(g.role);
+              const ts = latestTimestamp(g.messages);
+              const roleLabel = groupRoleLabel(g.role, props.assistantName);
+              const timeLabel = formatShortTime(ts);
+              const footerText = timeLabel ? `${roleLabel} · ${timeLabel}` : roleLabel;
               return html`
                 <div class="chs-group ${isUser ? "chs-group--user" : "chs-group--bot"}">
                   <div class="chs-av-wrap">${avatarTpl(g.role, props)}</div>
@@ -529,6 +557,7 @@ export function renderChatSimple(props: ChatProps): TemplateResult {
                         ${attachments ? html`<div class="chs-attach">${attachments}</div>` : nothing}
                       </div>`;
                     })}
+                    <div class="chs-group-footer">${footerText}</div>
                   </div>
                 </div>`;
             })}
