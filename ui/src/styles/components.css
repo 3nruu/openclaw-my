@@ -3190,15 +3190,17 @@ td.data-table-key-col {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   width: 100%;
   text-align: left;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--card);
-  padding: 8px 12px;
+  padding: 10px 12px;
   cursor: pointer;
-  transition: border-color var(--duration-fast) ease;
+  transition:
+    border-color var(--duration-fast) ease,
+    background var(--duration-fast) ease;
 }
 
 .agent-row:hover {
@@ -3206,8 +3208,9 @@ td.data-table-key-col {
 }
 
 .agent-row.active {
-  border-color: var(--accent);
-  box-shadow: var(--focus-ring);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: none;
 }
 
 .agent-avatar {
@@ -3233,12 +3236,15 @@ td.data-table-key-col {
 }
 
 .agent-title {
+  font-size: 13px;
   font-weight: 600;
+  color: var(--text-strong);
 }
 
 .agent-sub {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  margin-top: 1px;
 }
 
 .agent-pill {
