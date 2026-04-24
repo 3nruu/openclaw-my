@@ -659,7 +659,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 0 9px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;

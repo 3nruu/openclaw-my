@@ -260,7 +260,7 @@
 .stat {
   background: var(--card);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 13px 15px;
   border: 1px solid var(--border);
   transition:
     border-color var(--duration-normal) var(--ease-out),
@@ -280,9 +280,9 @@
 }
 
 .stat-value {
-  font-size: var(--text-2xl);
+  font-size: 22px;
   font-weight: 700;
-  margin-top: 6px;
+  margin-top: 5px;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--text-strong);
@@ -412,9 +412,27 @@
 }
 
 .pill.danger {
-  border-color: var(--danger-subtle);
+  border-color: color-mix(in srgb, var(--danger) 25%, transparent);
   background: var(--danger-subtle);
   color: var(--danger);
+}
+
+.pill.ok {
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+  background: var(--ok-subtle);
+  color: var(--ok);
+}
+
+.pill.warn {
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+  background: var(--warn-subtle);
+  color: var(--warn);
+}
+
+.pill.accent {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--accent-subtle);
+  color: var(--accent);
 }
 
 /* ===========================================
@@ -665,7 +683,6 @@
   border-color: var(--accent);
   background: var(--accent);
   color: var(--primary-foreground);
-  box-shadow: 0 1px 3px var(--accent-subtle);
 }
 
 .btn.primary:hover {
@@ -696,7 +713,7 @@
 }
 
 .btn.active {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   background: var(--accent-subtle);
   color: var(--accent);
 }
@@ -723,9 +740,9 @@
 }
 
 .btn--icon {
-  padding: 8px;
-  min-width: 36px;
-  height: 36px;
+  padding: 7px;
+  min-width: 34px;
+  height: 34px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
 }
@@ -737,8 +754,8 @@
 
 .btn--icon svg {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.5px;
@@ -1295,7 +1312,7 @@
 }
 
 :root[data-theme-mode="light"] .btn.active {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   background: var(--accent-subtle);
   color: var(--accent);
 }
