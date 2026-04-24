@@ -187,7 +187,7 @@
 }
 
 .update-banner__btn:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
 }
 
 .update-banner__close {
@@ -538,19 +538,19 @@
   height: 8px;
   border-radius: var(--radius-full);
   background: var(--danger);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 50%, transparent);
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
 .statusDot.ok {
   background: var(--ok);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 50%, transparent);
   animation: none;
 }
 
 .statusDot.warn {
   background: var(--warn);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--warn) 50%, transparent);
   animation: none;
 }
 
@@ -1410,7 +1410,7 @@
 
 .compaction-indicator--active {
   color: var(--info);
-  border-color: rgba(59, 130, 246, 0.35);
+  border-color: color-mix(in srgb, var(--info) 35%, transparent);
 }
 
 .compaction-indicator--active svg {
@@ -1419,17 +1419,17 @@
 
 .compaction-indicator--complete {
   color: var(--ok);
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
 }
 
 .compaction-indicator--fallback {
-  color: #d97706;
-  border-color: rgba(217, 119, 6, 0.35);
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
 }
 
 .compaction-indicator--fallback-cleared {
   color: var(--ok);
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
 }
 
 @keyframes compaction-spin {
@@ -1446,15 +1446,15 @@
   margin: 0 auto 8px;
   padding: 12px 14px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(59, 130, 246, 0.28);
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03));
+  border: 1px solid color-mix(in srgb, var(--info) 28%, transparent);
+  background: color-mix(in srgb, var(--info) 7%, transparent);
   color: var(--text);
   animation: fade-in 0.2s var(--ease-out);
 }
 
 .chat-side-result--error {
-  border-color: rgba(239, 68, 68, 0.28);
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+  border-color: color-mix(in srgb, var(--danger) 28%, transparent);
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
 }
 
 .chat-side-result__header,
@@ -1844,19 +1844,19 @@
 
 .cron-job-status-ok {
   color: var(--ok);
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
   background: var(--ok-subtle);
 }
 
 .cron-job-status-error {
   color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.35);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
   background: var(--danger-subtle);
 }
 
 .cron-job-status-skipped {
   color: var(--warn);
-  border-color: rgba(245, 158, 11, 0.35);
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
   background: var(--warn-subtle);
 }
 
@@ -1937,19 +1937,19 @@
 
 .chip-ok {
   color: var(--ok);
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
   background: var(--ok-subtle);
 }
 
 .chip-warn {
   color: var(--warn);
-  border-color: rgba(245, 158, 11, 0.3);
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
   background: var(--warn-subtle);
 }
 
 .chip-danger {
   color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   background: var(--danger-subtle);
 }
 
@@ -2180,7 +2180,7 @@
 
 .data-table-badge--group {
   color: var(--info);
-  background: rgba(59, 130, 246, 0.1);
+  background: color-mix(in srgb, var(--info) 10%, transparent);
 }
 
 .data-table-badge--global {
@@ -2406,7 +2406,7 @@ td.data-table-key-col {
 
 .log-level.info {
   color: var(--info);
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: color-mix(in srgb, var(--info) 30%, transparent);
 }
 
 .log-level.warn {
@@ -2427,7 +2427,7 @@ td.data-table-key-col {
 
 .log-chip.info {
   color: var(--info);
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: color-mix(in srgb, var(--info) 30%, transparent);
 }
 
 .log-chip.warn {
@@ -4014,13 +4014,13 @@ td.data-table-key-col {
 }
 
 .ov-attention-item.warn {
-  border-color: var(--warning-subtle, rgba(234, 179, 8, 0.2));
-  background: rgba(234, 179, 8, 0.05);
+  border-color: color-mix(in srgb, var(--warn) 20%, transparent);
+  background: color-mix(in srgb, var(--warn) 5%, transparent);
 }
 
 .ov-attention-item.danger {
-  border-color: var(--danger-subtle, rgba(239, 68, 68, 0.2));
-  background: rgba(239, 68, 68, 0.05);
+  border-color: color-mix(in srgb, var(--danger) 20%, transparent);
+  background: color-mix(in srgb, var(--danger) 5%, transparent);
 }
 
 .ov-attention-icon {
