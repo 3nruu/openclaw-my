@@ -1693,9 +1693,11 @@
   align-items: start;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 12px 14px;
   background: var(--card);
-  transition: border-color var(--duration-fast) ease;
+  transition:
+    border-color var(--duration-fast) ease,
+    background var(--duration-fast) ease;
 }
 
 .list-item-clickable {
@@ -1707,8 +1709,9 @@
 }
 
 .list-item-selected {
-  border-color: var(--accent);
-  box-shadow: var(--focus-ring);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: none;
 }
 
 .list-main {
