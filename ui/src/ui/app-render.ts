@@ -1264,6 +1264,14 @@ export function renderApp(state: AppViewState) {
             <div class="topbar-status">
               ${isChat ? renderChatMobileToggle(state) : nothing}
               ${renderTopbarThemeModeToggle(state)}
+              <span
+                class="topbar-status-dot ${state.connected
+                  ? "topbar-status-dot--online"
+                  : "topbar-status-dot--offline"}"
+                role="img"
+                aria-label="Gateway: ${state.connected ? "online" : "offline"}"
+                title="Gateway: ${state.connected ? "online" : "offline"}"
+              ></span>
             </div>
           </div>
         </div>
@@ -1282,7 +1290,7 @@ export function renderApp(state: AppViewState) {
                         alt="OpenClaw"
                       />
                       <span class="sidebar-brand__copy">
-                        <span class="sidebar-brand__eyebrow">${t("nav.control")}</span>
+                        <span class="sidebar-brand__eyebrow">${t("nav.controlUi")}</span>
                         <span class="sidebar-brand__title">OpenClaw</span>
                       </span>
                     `}
@@ -1358,72 +1366,23 @@ export function renderApp(state: AppViewState) {
                     `;
                   };
 
-                  const [chatGroup, ...otherGroups] = TAB_GROUPS;
-                  const isMoreCollapsed =
-                    state.settings.navGroupsCollapsed.more ?? false;
-                  const showMoreExpanded = !isMoreCollapsed;
-                  // Compact (icon-only) mode uses its own default: start closed so the
-                  // sidebar shows chat + a single "More" icon instead of every tab.
-                  const isMoreCompactCollapsed =
-                    state.settings.navGroupsCollapsed.moreCompact ?? true;
-                  const showMoreCompact = !isMoreCompactCollapsed;
-
                   if (navCollapsed) {
                     return html`
-                      ${renderGroup(chatGroup)}
-                      <div class="nav-section nav-section--more-compact">
-                        <button
-                          class="nav-item nav-item--more-toggle ${showMoreCompact
-                            ? "nav-item--active"
-                            : ""}"
-                          @click=${() => toggleGroup("moreCompact", isMoreCompactCollapsed)}
-                          aria-expanded=${showMoreCompact}
-                          aria-label=${showMoreCompact ? "Hide more tabs" : "Show more tabs"}
-                          title=${showMoreCompact ? "Hide more" : "More"}
-                        >
-                          <span class="nav-item__icon" aria-hidden="true"
-                            >${icons.moreHorizontal}</span
-                          >
-                        </button>
-                        ${showMoreCompact
-                          ? html`
-                              <div class="nav-section__items nav-section__items--more-compact">
-                                ${otherGroups.flatMap((group) =>
-                                  group.tabs.map((tab) =>
-                                    renderTab(state, tab, { collapsed: true }),
-                                  ),
-                                )}
-                              </div>
-                            `
-                          : nothing}
-                      </div>
+                      ${TAB_GROUPS.map(
+                        (group) => html`
+                          <section class="nav-section nav-section--compact">
+                            <div class="nav-section__items">
+                              ${group.tabs.map((tab) =>
+                                renderTab(state, tab, { collapsed: true }),
+                              )}
+                            </div>
+                          </section>
+                        `,
+                      )}
                     `;
                   }
 
-                  return html`
-                    ${renderGroup(chatGroup)}
-                    <section
-                      class="nav-section nav-section--more ${!showMoreExpanded
-                        ? "nav-section--collapsed"
-                        : ""}"
-                    >
-                      <button
-                        class="nav-section__label nav-section__label--more"
-                        @click=${() => toggleGroup("more", isMoreCollapsed)}
-                        aria-expanded=${showMoreExpanded}
-                      >
-                        <span class="nav-section__label-text">More</span>
-                        <span class="nav-section__chevron"
-                          >${icons.chevronDown}</span
-                        >
-                      </button>
-                      <div class="nav-section__items nav-section__items--nested">
-                        ${otherGroups.map((group) =>
-                          renderGroup(group, { nested: true }),
-                        )}
-                      </div>
-                    </section>
-                  `;
+                  return html`${TAB_GROUPS.map((group) => renderGroup(group))}`;
                 })()}
               </nav>
             </div>
@@ -1444,7 +1403,6 @@ export function renderApp(state: AppViewState) {
                       `
                     : nothing}
                 </a>
-                <div class="sidebar-mode-switch">${renderTopbarThemeModeToggle(state)}</div>
                 ${(() => {
                   const version = state.hello?.server?.version ?? "";
                   return version
@@ -1452,7 +1410,6 @@ export function renderApp(state: AppViewState) {
                         <div class="sidebar-version" title=${`v${version}`}>
                           ${!navCollapsed
                             ? html`
-                                <span class="sidebar-version__label">${t("common.version")}</span>
                                 <span class="sidebar-version__text">v${version}</span>
                                 ${renderSidebarConnectionStatus(state)}
                               `

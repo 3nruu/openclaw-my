@@ -212,3 +212,16 @@ export function titleForTab(tab: Tab) {
 export function subtitleForTab(tab: Tab) {
   return t(`subtitles.${tab}`);
 }
+
+export function groupLabelKeyForTab(tab: Tab): string {
+  for (const group of TAB_GROUPS) {
+    if ((group.tabs as readonly string[]).includes(tab)) {
+      return group.label;
+    }
+  }
+  return "workspace";
+}
+
+export function groupTitleForTab(tab: Tab): string {
+  return t(`nav.${groupLabelKeyForTab(tab)}`);
+}
