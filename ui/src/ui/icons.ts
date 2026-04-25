@@ -462,6 +462,64 @@ export const icons = {
       <line x1="3" x2="10" y1="21" y2="14" />
     </svg>
   `,
+  home: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M9 22V12h6v10" />
+    </svg>
+  `,
+  server: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M22 12H2" />
+      <path
+        d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+      />
+      <path d="M6 16h.01" />
+      <path d="M10 16h.01" />
+    </svg>
+  `,
+  wifi: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+      <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+      <path d="M12 20h.01" />
+    </svg>
+  `,
+  clock: html`
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  `,
+  star: html`
+    <svg viewBox="0 0 24 24">
+      <path
+        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      />
+    </svg>
+  `,
+  hexagon: html`
+    <svg viewBox="0 0 24 24">
+      <path
+        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+      />
+    </svg>
+  `,
+  barChart2: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M18 20V10" />
+      <path d="M12 20V4" />
+      <path d="M6 20v-6" />
+    </svg>
+  `,
+  helpCircle: html`
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </svg>
+  `,
 } as const;
 
 export type IconName = keyof typeof icons;
