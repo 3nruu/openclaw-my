@@ -18,7 +18,7 @@ import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
 import { parseAgentSessionKey } from "./session-key.ts";
 import { normalizeOptionalString } from "./string-coerce.ts";
-import type { ThemeMode, ThemeName } from "./theme.ts";
+import type { ThemeMode } from "./theme.ts";
 import type { SessionsListResult } from "./types.ts";
 
 export { isCronSessionKey, parseSessionKey, resolveSessionDisplayName, resolveSessionOptionGroups };
@@ -542,52 +542,47 @@ function countHiddenCronSessions(sessionKey: string, sessions: SessionsListResul
   return sessions.sessions.filter((s) => isCronSessionKey(s.key) && s.key !== sessionKey).length;
 }
 
-type ThemePickerOption = {
-  theme: ThemeName;
-  mode: Exclude<ThemeMode, "system">;
-  label: string;
-  accent: string;
-};
-
-const THEME_PICKER_OPTIONS: ThemePickerOption[] = [
-  { theme: "claw", mode: "dark", label: "Default", accent: "#7c6af7" },
-  { theme: "knot", mode: "dark", label: "OpenKnot", accent: "#e5243b" },
-  { theme: "dash", mode: "dark", label: "Dash", accent: "#b47840" },
-  { theme: "knot", mode: "light", label: "OpenKnot Light", accent: "#c41e30" },
-  { theme: "dash", mode: "light", label: "Dash Light", accent: "#6e4828" },
+type ThemeModeOption = { id: ThemeMode; label: string; short: string };
+const THEME_MODE_OPTIONS: ThemeModeOption[] = [
+  { id: "system", label: "System", short: "SYS" },
+  { id: "light", label: "Light", short: "LIGHT" },
+  { id: "dark", label: "Dark", short: "DARK" },
 ];
 
 export function renderTopbarThemeModeToggle(state: AppViewState) {
-  const isActive = (opt: ThemePickerOption) =>
-    state.themeName === opt.theme && state.themeMode === opt.mode;
+  const modeIcon = (mode: ThemeMode) => {
+    if (mode === "system") {
+      return icons.monitor;
+    }
+    if (mode === "light") {
+      return icons.sun;
+    }
+    return icons.moon;
+  };
 
-  const apply = (opt: ThemePickerOption, e: Event) => {
-    if (isActive(opt)) {
+  const applyMode = (mode: ThemeMode, e: Event) => {
+    if (mode === state.themeMode) {
       return;
     }
-    if (state.themeName !== opt.theme) {
-      state.setTheme(opt.theme, { element: e.currentTarget as HTMLElement });
-    }
-    if (state.themeMode !== opt.mode) {
-      state.setThemeMode(opt.mode, { element: e.currentTarget as HTMLElement });
-    }
+    state.setThemeMode(mode, { element: e.currentTarget as HTMLElement });
   };
 
   return html`
-    <div class="topbar-theme-picker" role="group" aria-label="Theme">
-      ${THEME_PICKER_OPTIONS.map(
+    <div class="topbar-theme-mode" role="group" aria-label="Color mode">
+      ${THEME_MODE_OPTIONS.map(
         (opt) => html`
           <button
             type="button"
-            class="topbar-theme-picker__btn ${isActive(opt)
-              ? "topbar-theme-picker__btn--active"
+            class="topbar-theme-mode__btn ${opt.id === state.themeMode
+              ? "topbar-theme-mode__btn--active"
               : ""}"
-            style="--swatch-color: ${opt.accent}"
             title=${opt.label}
-            aria-label="Theme: ${opt.label}"
-            aria-pressed=${isActive(opt)}
-            @click=${(e: Event) => apply(opt, e)}
-          ></button>
+            aria-label="Color mode: ${opt.label}"
+            aria-pressed=${opt.id === state.themeMode}
+            @click=${(e: Event) => applyMode(opt.id, e)}
+          >
+            ${modeIcon(opt.id)}
+          </button>
         `,
       )}
     </div>

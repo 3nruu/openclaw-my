@@ -136,10 +136,6 @@ export const en: TranslationMap = {
     builtIn: "Built-in",
   },
   nav: {
-    workspace: "Workspace",
-    automation: "Automation",
-    system: "System",
-    controlUi: "Control UI",
     chat: "Chat",
     control: "Control",
     agent: "Agent",

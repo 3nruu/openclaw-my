@@ -28,16 +28,16 @@
 }
 
 .usage-page-title {
-  font-size: var(--h2-size);
-  font-weight: var(--h2-weight);
-  letter-spacing: var(--h2-tracking);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   color: var(--text-strong);
 }
 
 .usage-page-subtitle {
   max-width: 720px;
   color: var(--muted);
-  font-size: var(--text-sm);
+  font-size: 13px;
   line-height: 1.5;
 }
 

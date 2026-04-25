@@ -193,35 +193,10 @@ function renderGenericChannelCard(
     typeof displayState.status?.lastError === "string" ? displayState.status.lastError : undefined;
   const accounts = channelAccounts[key] ?? [];
   const accountCountLabel = renderChannelAccountCount(key, channelAccounts);
-  // Status-tinted card border per ChannelsScreen.jsx pattern.
-  const statusTone = lastError
-    ? "danger"
-    : displayState.connected && displayState.running
-      ? "ok"
-      : displayState.configured && !displayState.running
-        ? "warn"
-        : "muted";
-  const dotClass = `statusDot${
-    statusTone === "ok"
-      ? " ok"
-      : statusTone === "warn"
-        ? " warn"
-        : statusTone === "muted"
-          ? " muted"
-          : ""
-  }`;
-  const initial = label?.[0]?.toUpperCase() ?? "?";
 
   return html`
-    <div class="card card--${statusTone}">
-      <div class="channel-card__head">
-        <div class="channel-card__icon" data-tone=${statusTone}>${initial}</div>
-        <div class="channel-card__titles">
-          <div class="channel-card__name">${label}</div>
-          <div class="channel-card__id">${key}</div>
-        </div>
-        <span class=${dotClass} aria-hidden="true"></span>
-      </div>
+    <div class="card">
+      <div class="card-title">${label}</div>
       <div class="card-sub">${t("channels.generic.subtitle")}</div>
       ${accountCountLabel}
       ${accounts.length > 0

@@ -3,21 +3,15 @@ import type { IconName } from "./icons.js";
 import { normalizeLowercaseStringOrEmpty } from "./string-coerce.ts";
 
 export const TAB_GROUPS = [
+  { label: "chat", tabs: ["chat"] },
   {
-    label: "workspace",
-    tabs: ["chat", "overview", "agents", "skills", "sessions"],
+    label: "control",
+    tabs: ["overview", "channels", "instances", "sessions", "usage", "cron"],
   },
+  { label: "agent", tabs: ["agents", "skills", "nodes", "dreams"] },
   {
-    label: "automation",
-    tabs: ["cron", "channels", "dreams"],
-  },
-  {
-    label: "system",
+    label: "settings",
     tabs: [
-      "nodes",
-      "usage",
-      "logs",
-      "instances",
       "config",
       "communications",
       "appearance",
@@ -25,6 +19,7 @@ export const TAB_GROUPS = [
       "infrastructure",
       "aiAgents",
       "debug",
+      "logs",
     ],
   },
 ] as const;
@@ -162,30 +157,26 @@ export function inferBasePathFromPathname(pathname: string): string {
 
 export function iconForTab(tab: Tab): IconName {
   switch (tab) {
+    case "agents":
+      return "folder";
     case "chat":
       return "messageSquare";
     case "overview":
-      return "home";
-    case "agents":
-      return "zap";
-    case "skills":
-      return "star";
-    case "sessions":
-      return "clock";
-    case "cron":
-      return "menu";
+      return "barChart";
     case "channels":
       return "link";
-    case "dreams":
-      return "hexagon";
-    case "nodes":
-      return "server";
-    case "usage":
-      return "barChart2";
-    case "logs":
-      return "fileText";
     case "instances":
-      return "wifi";
+      return "radio";
+    case "sessions":
+      return "fileText";
+    case "usage":
+      return "barChart";
+    case "cron":
+      return "loader";
+    case "skills":
+      return "zap";
+    case "nodes":
+      return "monitor";
     case "config":
       return "settings";
     case "communications":
@@ -199,7 +190,11 @@ export function iconForTab(tab: Tab): IconName {
     case "aiAgents":
       return "brain";
     case "debug":
-      return "helpCircle";
+      return "bug";
+    case "logs":
+      return "scrollText";
+    case "dreams":
+      return "moon";
     default:
       return "folder";
   }
@@ -211,17 +206,4 @@ export function titleForTab(tab: Tab) {
 
 export function subtitleForTab(tab: Tab) {
   return t(`subtitles.${tab}`);
-}
-
-export function groupLabelKeyForTab(tab: Tab): string {
-  for (const group of TAB_GROUPS) {
-    if ((group.tabs as readonly string[]).includes(tab)) {
-      return group.label;
-    }
-  }
-  return "workspace";
-}
-
-export function groupTitleForTab(tab: Tab): string {
-  return t(`nav.${groupLabelKeyForTab(tab)}`);
 }
