@@ -146,28 +146,45 @@ export function renderAgents(props: AgentsProps) {
 
   return html`
     <div class="agents-layout">
+      <aside class="agents-side" role="listbox" aria-label="Agents">
+        <div class="agents-side__count">
+          ${agents.length} ${agents.length === 1 ? "agent" : "agents"}
+        </div>
+        ${agents.length === 0
+          ? html`<div class="muted" style="padding: 8px 4px;">No agents</div>`
+          : agents.map((agent) => {
+              const isActive = agent.id === selectedId;
+              const isDefault = Boolean(defaultId && agent.id === defaultId);
+              const badge = agentBadgeText(agent.id, defaultId);
+              return html`
+                <button
+                  type="button"
+                  role="option"
+                  class="agents-side-row ${isActive ? "active" : ""}"
+                  aria-selected=${isActive}
+                  ?disabled=${props.loading}
+                  @click=${() => props.onSelectAgent(agent.id)}
+                  title=${agent.id}
+                >
+                  <span
+                    class="statusDot ${isActive ? "ok" : "muted"}"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="agents-side-row__body">
+                    <span class="agents-side-row__name">${normalizeAgentLabel(agent)}</span>
+                    <span class="agents-side-row__sub">${agent.id}</span>
+                  </span>
+                  ${isDefault
+                    ? html`<span class="agents-side-row__badge">default</span>`
+                    : badge
+                      ? html`<span class="agents-side-row__badge">${badge}</span>`
+                      : nothing}
+                </button>
+              `;
+            })}
+      </aside>
       <section class="agents-toolbar">
         <div class="agents-toolbar-row">
-          <div class="agents-control-select">
-            <select
-              class="agents-select"
-              .value=${selectedId ?? ""}
-              ?disabled=${props.loading || agents.length === 0}
-              @change=${(e: Event) => props.onSelectAgent((e.target as HTMLSelectElement).value)}
-            >
-              ${agents.length === 0
-                ? html` <option value="">No agents</option> `
-                : agents.map(
-                    (agent) => html`
-                      <option value=${agent.id} ?selected=${agent.id === selectedId}>
-                        ${normalizeAgentLabel(agent)}${agentBadgeText(agent.id, defaultId)
-                          ? ` (${agentBadgeText(agent.id, defaultId)})`
-                          : ""}
-                      </option>
-                    `,
-                  )}
-            </select>
-          </div>
           <div class="agents-toolbar-actions">
             ${selectedAgent
               ? html`
