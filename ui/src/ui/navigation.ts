@@ -3,15 +3,21 @@ import type { IconName } from "./icons.js";
 import { normalizeLowercaseStringOrEmpty } from "./string-coerce.ts";
 
 export const TAB_GROUPS = [
-  { label: "chat", tabs: ["chat"] },
   {
-    label: "control",
-    tabs: ["overview", "channels", "instances", "sessions", "usage", "cron"],
+    label: "workspace",
+    tabs: ["chat", "overview", "agents", "skills", "sessions"],
   },
-  { label: "agent", tabs: ["agents", "skills", "nodes", "dreams"] },
   {
-    label: "settings",
+    label: "automation",
+    tabs: ["cron", "channels", "dreams"],
+  },
+  {
+    label: "system",
     tabs: [
+      "nodes",
+      "usage",
+      "logs",
+      "instances",
       "config",
       "communications",
       "appearance",
@@ -19,7 +25,6 @@ export const TAB_GROUPS = [
       "infrastructure",
       "aiAgents",
       "debug",
-      "logs",
     ],
   },
 ] as const;
