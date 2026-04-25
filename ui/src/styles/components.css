@@ -245,6 +245,60 @@
 .card--danger { border-color: color-mix(in srgb, var(--danger) 15%, transparent); }
 .card--muted  { border-color: var(--border); }
 
+/* Channel card head — JSX ChannelsScreen.jsx icon-box + title + statusdot pattern */
+.channel-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.channel-card__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  background: var(--accent-subtle);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+}
+
+.channel-card__icon[data-tone="muted"] {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.channel-card__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-card__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-card__id {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
 .card-title {
   font-size: var(--text-base);
   font-weight: 600;
