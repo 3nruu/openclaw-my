@@ -1560,6 +1560,7 @@ export function renderApp(state: AppViewState) {
               attentionItems: state.attentionItems,
               eventLog: state.eventLog,
               overviewLogLines: state.overviewLogLines,
+              channelsSnapshot: state.channelsSnapshot,
               showGatewayToken: state.overviewShowGatewayToken,
               showGatewayPassword: state.overviewShowGatewayPassword,
               onSettingsChange: (next) => state.applySettings(next),

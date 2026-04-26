@@ -214,6 +214,9 @@ export const en: TranslationMap = {
       sessionsHint: "Recent session keys tracked by the gateway.",
       cron: "Cron",
       cronNext: "Next wake {time}",
+      uptime: "Uptime",
+      tokensToday: "Tokens today",
+      cronJobs: "Cron jobs",
     },
     notes: {
       title: "Notes",
@@ -268,7 +271,23 @@ export const en: TranslationMap = {
       title: "Attention",
     },
     eventLog: {
-      title: "Event Log",
+      title: "Event log",
+      subtitle: "Recent gateway activity",
+      empty: "No recent activity.",
+    },
+    gateway: {
+      title: "Gateway",
+      sub: "Connected · auth: {auth}",
+      tick: "Tick",
+      authMode: "Auth mode",
+    },
+    channels: {
+      title: "Channels",
+      manage: "Manage",
+      empty: "No channels configured.",
+    },
+    secondary: {
+      toggle: "Show details",
     },
     logTail: {
       title: "Gateway Logs",
