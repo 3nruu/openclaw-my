@@ -2165,6 +2165,9 @@ export function renderApp(state: AppViewState) {
                   }
                   updateConfigFormValue(state, ["agents", "defaultId"], agentId);
                 },
+                onClearAgentSelection: () => {
+                  state.agentsSelectedId = null;
+                },
               }),
             )
           : nothing}

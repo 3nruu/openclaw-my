@@ -3271,8 +3271,12 @@ td.data-table-key-col {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--border);
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-elevated) 60%, transparent);
+  margin-bottom: 16px;
+  width: fit-content;
 }
 
 .agent-tab {
@@ -4871,4 +4875,406 @@ details[open] > .ov-expandable-toggle::after {
   display: grid;
   gap: 16px;
   margin-top: 14px;
+}
+
+/* ===========================================
+   Agents — list (cards) + detail header
+   =========================================== */
+
+.agents-list-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.agents-list-toolbar__title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-strong);
+  margin: 0 0 4px;
+}
+
+.agents-list-toolbar__sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.agents-list-toolbar__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.agents-list-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color var(--duration-fast) ease,
+    background var(--duration-fast) ease,
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+  animation: rise 0.25s var(--ease-out) backwards;
+}
+
+.agent-card:hover {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--card) 88%, var(--bg-hover) 12%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.agent-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.agent-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agent-card__head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.agent-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agent-card__name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-strong);
+}
+
+.agent-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.agent-card__status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-card__status {
+  font-weight: 500;
+}
+
+.agent-card__sep {
+  opacity: 0.5;
+}
+
+.agent-card__model {
+  color: var(--muted);
+}
+
+.agent-card__desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.agent-card__footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 12px;
+  margin-top: auto;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agent-card__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.agent-card__meta-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.agent-card__last {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.agent-card__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.agent-card__chip--accent {
+  color: var(--accent);
+  background: var(--accent-subtle);
+  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.agent-card--add {
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed color-mix(in srgb, var(--border-strong) 80%, transparent);
+  background: transparent;
+  color: var(--muted);
+  cursor: not-allowed;
+  min-height: 200px;
+  gap: 10px;
+  text-align: center;
+  transition: none;
+}
+
+.agent-card--add:hover {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--border-strong) 80%, transparent);
+  transform: none;
+  box-shadow: none;
+}
+
+.agent-card__add-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--border-strong) 90%, transparent);
+}
+
+.agent-card__add-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.agent-card__add-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Agent avatar — gradient square + emoji/initial */
+.agent-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--avatar-hue, 250) 70% 60%) 0%,
+    hsl(calc(var(--avatar-hue, 250) + 30) 65% 50%) 100%
+  );
+  color: white;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 4px 12px color-mix(in srgb, hsl(var(--avatar-hue, 250) 70% 50%) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.agent-avatar--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.agent-avatar--md {
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+}
+
+.agent-avatar--lg {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  font-size: 22px;
+}
+
+.agent-avatar__glyph {
+  line-height: 1;
+}
+
+/* Detail header */
+.agents-detail-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.agents-detail-back__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.agents-detail-back__btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.agents-detail-back__chevron {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.agents-detail-back__sep {
+  opacity: 0.5;
+}
+
+.agents-detail-back__current {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.agents-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  margin-bottom: 18px;
+}
+
+.agents-detail-header__main {
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.agents-detail-header__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agents-detail-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agents-detail-header__name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.agents-detail-header__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agents-detail-header__desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0;
+  max-width: 720px;
+}
+
+.agents-detail-header__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.agents-detail-header__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .agents-detail-header {
+    flex-direction: column;
+  }
+  .agents-detail-header__actions {
+    width: 100%;
+  }
 }

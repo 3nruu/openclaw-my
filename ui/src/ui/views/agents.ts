@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import { t } from "../../i18n/index.ts";
+import { icons } from "../icons.ts";
 import type {
   AgentIdentityResult,
   AgentsFilesListResult,
@@ -7,6 +8,7 @@ import type {
   ChannelsStatusSnapshot,
   CronJob,
   CronStatus,
+  GatewayAgentRow,
   ModelCatalogEntry,
   SkillStatusReport,
   ToolsCatalogResult,
@@ -20,7 +22,13 @@ import {
 } from "./agents-panels-status-files.ts";
 export type { AgentsPanel } from "./agents.types.ts";
 import { renderAgentTools, renderAgentSkills } from "./agents-panels-tools-skills.ts";
-import { agentBadgeText, buildAgentContext, normalizeAgentLabel } from "./agents-utils.ts";
+import {
+  agentAvatarHue,
+  buildAgentContext,
+  normalizeAgentLabel,
+  resolveAgentEmoji,
+  resolveModelLabel,
+} from "./agents-utils.ts";
 import type { AgentsPanel } from "./agents.types.ts";
 
 export type ConfigState = {
@@ -117,26 +125,31 @@ export type AgentsProps = {
   onAgentSkillsClear: (agentId: string) => void;
   onAgentSkillsDisableAll: (agentId: string) => void;
   onSetDefault: (agentId: string) => void;
+  onClearAgentSelection?: () => void;
 };
 
 export function renderAgents(props: AgentsProps) {
   const agents = props.agentsList?.agents ?? [];
   const defaultId = props.agentsList?.defaultId ?? null;
-  const selectedId = props.selectedAgentId ?? defaultId ?? agents[0]?.id ?? null;
+  // List mode = no agent explicitly selected. We do not fall back to defaultId
+  // here so the user lands on the cards grid first.
+  const selectedId = props.selectedAgentId ?? null;
   const selectedAgent = selectedId
     ? (agents.find((agent) => agent.id === selectedId) ?? null)
     : null;
+
+  if (!selectedAgent) {
+    return renderAgentsList(props, agents, defaultId);
+  }
+
   const selectedSkillCount =
-    selectedId && props.agentSkills.agentId === selectedId
+    props.agentSkills.agentId === selectedAgent.id
       ? (props.agentSkills.report?.skills?.length ?? null)
       : null;
-
   const channelEntryCount = props.channels.snapshot
     ? Object.keys(props.channels.snapshot.channelAccounts ?? {}).length
     : null;
-  const cronJobCount = selectedId
-    ? props.cron.jobs.filter((j) => j.agentId === selectedId).length
-    : null;
+  const cronJobCount = props.cron.jobs.filter((j) => j.agentId === selectedAgent.id).length;
   const tabCounts: Record<string, number | null> = {
     files: props.agentFiles.list?.files?.length ?? null,
     skills: selectedSkillCount,
@@ -146,74 +159,9 @@ export function renderAgents(props: AgentsProps) {
 
   return html`
     <div class="agents-layout">
-      <section class="agents-toolbar">
-        <div class="agents-toolbar-row">
-          <div class="agents-control-select">
-            <select
-              class="agents-select"
-              .value=${selectedId ?? ""}
-              ?disabled=${props.loading || agents.length === 0}
-              @change=${(e: Event) => props.onSelectAgent((e.target as HTMLSelectElement).value)}
-            >
-              ${agents.length === 0
-                ? html` <option value="">No agents</option> `
-                : agents.map(
-                    (agent) => html`
-                      <option value=${agent.id} ?selected=${agent.id === selectedId}>
-                        ${normalizeAgentLabel(agent)}${agentBadgeText(agent.id, defaultId)
-                          ? ` (${agentBadgeText(agent.id, defaultId)})`
-                          : ""}
-                      </option>
-                    `,
-                  )}
-            </select>
-          </div>
-          <div class="agents-toolbar-actions">
-            ${selectedAgent
-              ? html`
-                  <button
-                    type="button"
-                    class="btn btn--sm btn--ghost"
-                    @click=${() => void navigator.clipboard.writeText(selectedAgent.id)}
-                    title="Copy agent ID to clipboard"
-                  >
-                    Copy ID
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn--sm btn--ghost"
-                    ?disabled=${Boolean(defaultId && selectedAgent.id === defaultId)}
-                    @click=${() => props.onSetDefault(selectedAgent.id)}
-                    title=${defaultId && selectedAgent.id === defaultId
-                      ? "Already the default agent"
-                      : "Set as the default agent"}
-                  >
-                    ${defaultId && selectedAgent.id === defaultId ? "Default" : "Set Default"}
-                  </button>
-                `
-              : nothing}
-            <button
-              class="btn btn--sm agents-refresh-btn"
-              ?disabled=${props.loading}
-              @click=${props.onRefresh}
-            >
-              ${props.loading ? t("common.loading") : t("common.refresh")}
-            </button>
-          </div>
-        </div>
-        ${props.error
-          ? html`<div class="callout danger" style="margin-top: 8px;">${props.error}</div>`
-          : nothing}
-      </section>
+      ${renderAgentDetailHeader(props, selectedAgent, defaultId)}
       <section class="agents-main">
-        ${!selectedAgent
-          ? html`
-              <div class="card">
-                <div class="card-title">Select an agent</div>
-                <div class="card-sub">Pick an agent to inspect its workspace and tools.</div>
-              </div>
-            `
-          : html`
+        ${html`
               ${renderAgentTabs(
                 props.activePanel,
                 (panel) => props.onSelectPanel(panel),
@@ -371,5 +319,250 @@ function renderAgentTabs(
         `,
       )}
     </div>
+  `;
+}
+
+function agentInitial(agent: GatewayAgentRow): string {
+  const name = normalizeAgentLabel(agent);
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return "?";
+  }
+  return trimmed.charAt(0).toUpperCase();
+}
+
+function renderAgentAvatar(
+  agent: GatewayAgentRow,
+  agentIdentity: AgentIdentityResult | null,
+  size: "sm" | "md" | "lg" = "md",
+) {
+  const hue = agentAvatarHue(agent.id);
+  const emoji = resolveAgentEmoji(agent, agentIdentity);
+  const cls = `agent-avatar agent-avatar--${size}`;
+  return html`
+    <span
+      class=${cls}
+      style="--avatar-hue: ${hue};"
+      role="img"
+      aria-label=${normalizeAgentLabel(agent)}
+    >
+      <span class="agent-avatar__glyph">${emoji || agentInitial(agent)}</span>
+    </span>
+  `;
+}
+
+function deriveAgentStatus(
+  agentId: string,
+  identity: AgentIdentityResult | null,
+  jobs: CronJob[],
+  defaultId: string | null,
+): { tone: "ok" | "warn" | "off"; label: string } {
+  // Backend doesn't expose a per-agent runtime state yet; use coarse cues:
+  // default agent → "Running"; agent with cron jobs → "Idle"; else "Idle".
+  if (defaultId && agentId === defaultId) {
+    return { tone: "ok", label: "Running" };
+  }
+  if (jobs.some((j) => j.agentId === agentId)) {
+    return { tone: "warn", label: "Idle" };
+  }
+  if (identity) {
+    return { tone: "off", label: "Idle" };
+  }
+  return { tone: "off", label: "Idle" };
+}
+
+function shortDescription(
+  agent: GatewayAgentRow,
+  identity: AgentIdentityResult | null,
+  configForm: Record<string, unknown> | null,
+): string {
+  type DescEntry = { id?: string; description?: string };
+  type DescConfig = { agents?: { list?: DescEntry[] } };
+  const cfg = (configForm ?? null) as DescConfig | null;
+  const list = cfg?.agents?.list ?? [];
+  const entry = list.find((row) => row?.id === agent.id);
+  const fromConfig = entry?.description;
+  if (typeof fromConfig === "string" && fromConfig.trim()) {
+    return fromConfig.trim();
+  }
+  if (identity?.name && identity.name.trim()) {
+    return identity.name.trim();
+  }
+  return normalizeAgentLabel(agent);
+}
+
+function renderAgentsList(
+  props: AgentsProps,
+  agents: GatewayAgentRow[],
+  defaultId: string | null,
+) {
+  return html`
+    <div class="agents-layout">
+      <section class="agents-list-toolbar">
+        <div class="agents-list-toolbar__copy">
+          <h2 class="agents-list-toolbar__title">Your agents</h2>
+          <div class="agents-list-toolbar__sub">
+            ${agents.length} ${agents.length === 1 ? "agent" : "agents"} configured
+          </div>
+        </div>
+        <div class="agents-list-toolbar__actions">
+          <button
+            class="btn btn--sm btn--ghost"
+            ?disabled=${props.loading}
+            @click=${() => props.onRefresh()}
+          >
+            ${props.loading ? t("common.loading") : t("common.refresh")}
+          </button>
+        </div>
+      </section>
+      ${props.error
+        ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
+        : nothing}
+      <section class="agents-list-grid">
+        ${agents.map((agent) => {
+          const identity = props.agentIdentityById[agent.id] ?? null;
+          const isDefault = defaultId === agent.id;
+          const status = deriveAgentStatus(agent.id, identity, props.cron.jobs, defaultId);
+          const modelLabel = resolveModelLabel(agent.model) || "—";
+          const channelsCount = props.channels.snapshot
+            ? Object.keys(props.channels.snapshot.channelAccounts ?? {}).length
+            : null;
+          const cronCount = props.cron.jobs.filter((j) => j.agentId === agent.id).length;
+          const lastActive = t("common.na");
+          const desc = shortDescription(agent, identity, props.config.form);
+          return html`
+            <button
+              type="button"
+              class="agent-card"
+              @click=${() => props.onSelectAgent(agent.id)}
+              aria-label=${`Open ${normalizeAgentLabel(agent)}`}
+            >
+              <div class="agent-card__head">
+                ${renderAgentAvatar(agent, identity, "md")}
+                <div class="agent-card__head-text">
+                  <div class="agent-card__name-row">
+                    <span class="agent-card__name">${normalizeAgentLabel(agent)}</span>
+                    ${isDefault
+                      ? html`<span class="agent-card__badge">DEFAULT</span>`
+                      : nothing}
+                  </div>
+                  <div class="agent-card__status-row">
+                    <span class="ov-status-dot ov-status-dot--${status.tone}"></span>
+                    <span class="agent-card__status">${status.label}</span>
+                    <span class="agent-card__sep">·</span>
+                    <span class="agent-card__model mono">${modelLabel}</span>
+                  </div>
+                </div>
+              </div>
+              <p class="agent-card__desc">${desc}</p>
+              <div class="agent-card__footer">
+                <span class="agent-card__meta">
+                  channels
+                  <span class="agent-card__meta-value"
+                    >${channelsCount == null ? "—" : channelsCount}</span
+                  >
+                </span>
+                <span class="agent-card__meta">
+                  cron <span class="agent-card__meta-value">${cronCount || "—"}</span>
+                </span>
+                <span class="agent-card__last">${lastActive}</span>
+              </div>
+            </button>
+          `;
+        })}
+        <button class="agent-card agent-card--add" type="button" disabled title="Coming soon">
+          <span class="agent-card__add-icon" aria-hidden="true">${icons.plus}</span>
+          <span class="agent-card__add-label">Add agent</span>
+        </button>
+      </section>
+    </div>
+  `;
+}
+
+function renderAgentDetailHeader(
+  props: AgentsProps,
+  agent: GatewayAgentRow,
+  defaultId: string | null,
+) {
+  const identity = props.agentIdentityById[agent.id] ?? null;
+  const isDefault = defaultId === agent.id;
+  const status = deriveAgentStatus(agent.id, identity, props.cron.jobs, defaultId);
+  const modelLabel = resolveModelLabel(agent.model) || "—";
+  const workspace = agent.workspace ?? "/workspace/main";
+  const desc = shortDescription(agent, identity, props.config.form);
+  // Pull a short list of tools from the agent's config entry when present.
+  type AgentConfigEntry = {
+    id?: string;
+    tools?: { allow?: string[] };
+  };
+  type AgentsConfig = { agents?: { list?: AgentConfigEntry[] } };
+  const cfg = (props.config.form ?? null) as AgentsConfig | null;
+  const cfgEntry = cfg?.agents?.list?.find((row) => row?.id === agent.id);
+  const cfgTools = Array.isArray(cfgEntry?.tools?.allow) ? cfgEntry.tools.allow : [];
+  const tools = cfgTools.slice(0, 6);
+
+  return html`
+    <nav class="agents-detail-back">
+      <button
+        type="button"
+        class="agents-detail-back__btn"
+        @click=${() => props.onClearAgentSelection?.()}
+      >
+        <span class="agents-detail-back__chevron" aria-hidden="true">‹</span>
+        <span>Your agents</span>
+      </button>
+      <span class="agents-detail-back__sep">›</span>
+      <span class="agents-detail-back__current">${normalizeAgentLabel(agent)}</span>
+    </nav>
+    <section class="agents-detail-header">
+      <div class="agents-detail-header__main">
+        ${renderAgentAvatar(agent, identity, "lg")}
+        <div class="agents-detail-header__copy">
+          <div class="agents-detail-header__title-row">
+            <h1 class="agents-detail-header__name">${normalizeAgentLabel(agent)}</h1>
+            ${isDefault
+              ? html`<span class="agent-card__badge">DEFAULT</span>`
+              : nothing}
+            <span class="agents-detail-header__status">
+              <span class="ov-status-dot ov-status-dot--${status.tone}"></span>
+              ${status.label}
+            </span>
+          </div>
+          <p class="agents-detail-header__desc">${desc}</p>
+          <div class="agents-detail-header__chips">
+            <span class="agent-card__chip mono">${modelLabel}</span>
+            <span class="agent-card__chip mono">${workspace}</span>
+            ${tools.map(
+              (toolName: string) =>
+                html`<span class="agent-card__chip agent-card__chip--accent mono"
+                  >${toolName}</span
+                >`,
+            )}
+          </div>
+        </div>
+      </div>
+      <div class="agents-detail-header__actions">
+        <button
+          type="button"
+          class="btn btn--sm btn--ghost"
+          @click=${() => void navigator.clipboard.writeText(agent.id)}
+          title="Copy agent ID to clipboard"
+        >
+          Copy ID
+        </button>
+        <button
+          type="button"
+          class="btn btn--sm btn--ghost"
+          ?disabled=${isDefault}
+          @click=${() => props.onSetDefault(agent.id)}
+          title=${isDefault ? "Already the default agent" : "Set as the default agent"}
+        >
+          ${isDefault ? "Default" : "Set Default"}
+        </button>
+      </div>
+    </section>
+    ${props.error
+      ? html`<div class="callout danger" style="margin-bottom: 12px;">${props.error}</div>`
+      : nothing}
   `;
 }
