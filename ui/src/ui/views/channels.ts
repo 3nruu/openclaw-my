@@ -15,6 +15,34 @@ import type {
   TelegramStatus,
   WhatsAppStatus,
 } from "../types.ts";
+
+type ChannelSummaryStatus = "ok" | "warn" | "danger" | "off";
+
+function summarizeChannelStatus(
+  accounts: ChannelAccountSnapshot[] | undefined,
+): ChannelSummaryStatus {
+  if (!accounts || accounts.length === 0) {
+    return "off";
+  }
+  if (accounts.some((a) => a.connected === true)) {
+    return "ok";
+  }
+  if (accounts.some((a) => a.running === true || a.linked === true)) {
+    return "warn";
+  }
+  if (accounts.some((a) => Boolean(a.lastError))) {
+    return "danger";
+  }
+  return "off";
+}
+
+function summaryAccountLabel(accounts: ChannelAccountSnapshot[] | undefined): string {
+  if (!accounts || accounts.length === 0) {
+    return "—";
+  }
+  const account = accounts.find((a) => a.accountId) ?? accounts[0];
+  return account?.accountId || account?.name || "—";
+}
 import { renderChannelConfigSection } from "./channels.config.ts";
 import { renderDiscordCard } from "./channels.discord.ts";
 import { renderGoogleChatCard } from "./channels.googlechat.ts";
@@ -57,39 +85,106 @@ export function renderChannels(props: ChannelsProps) {
     });
 
   return html`
-    <section class="grid grid-cols-2">
-      ${orderedChannels.map((channel) =>
-        renderChannel(channel.key, props, {
-          whatsapp,
-          telegram,
-          discord,
-          googlechat,
-          slack,
-          signal,
-          imessage,
-          nostr,
-          channelAccounts: props.snapshot?.channelAccounts ?? null,
-        }),
-      )}
+    ${renderChannelsSummary(props, channelOrder)}
+
+    <section class="ov-panel" style="margin-bottom: 16px;">
+      <header class="ov-panel__head">
+        <div class="ov-panel__heading">
+          <h3 class="ov-panel__title">${t("channels.cards.title")}</h3>
+          <div class="ov-panel__sub">${t("channels.cards.subtitle")}</div>
+        </div>
+      </header>
+      <div class="grid grid-cols-2">
+        ${orderedChannels.map((channel) =>
+          renderChannel(channel.key, props, {
+            whatsapp,
+            telegram,
+            discord,
+            googlechat,
+            slack,
+            signal,
+            imessage,
+            nostr,
+            channelAccounts: props.snapshot?.channelAccounts ?? null,
+          }),
+        )}
+      </div>
     </section>
 
-    <section class="card" style="margin-top: 18px;">
-      <div class="row" style="justify-content: space-between;">
-        <div>
-          <div class="card-title">${t("channels.health.title")}</div>
-          <div class="card-sub">${t("channels.health.subtitle")}</div>
-        </div>
-        <div class="muted">
-          ${props.lastSuccessAt ? formatRelativeTimestamp(props.lastSuccessAt) : t("common.na")}
-        </div>
-      </div>
-      ${props.lastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">${props.lastError}</div>`
-        : nothing}
-      <pre class="code-block" style="margin-top: 12px;">
+    <details class="ov-secondary">
+      <summary class="ov-secondary__toggle">${t("channels.health.toggle")}</summary>
+      <div class="ov-secondary__body">
+        <section class="card">
+          <div class="row" style="justify-content: space-between;">
+            <div>
+              <div class="card-title">${t("channels.health.title")}</div>
+              <div class="card-sub">${t("channels.health.subtitle")}</div>
+            </div>
+            <div class="muted">
+              ${props.lastSuccessAt ? formatRelativeTimestamp(props.lastSuccessAt) : t("common.na")}
+            </div>
+          </div>
+          ${props.lastError
+            ? html`<div class="callout danger" style="margin-top: 12px;">${props.lastError}</div>`
+            : nothing}
+          <pre class="code-block" style="margin-top: 12px;">
 ${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : t("channels.health.noSnapshotYet")}
-      </pre
-      >
+          </pre>
+        </section>
+      </div>
+    </details>
+  `;
+}
+
+function renderChannelsSummary(props: ChannelsProps, channelOrder: ChannelKey[]) {
+  const accounts = props.snapshot?.channelAccounts ?? {};
+  const labels = props.snapshot?.channelLabels ?? {};
+  const labelById = new Map<string, string>();
+  for (const meta of props.snapshot?.channelMeta ?? []) {
+    labelById.set(meta.id, meta.label);
+  }
+  const items = channelOrder.map((id) => {
+    const status = summarizeChannelStatus(accounts[id]);
+    const label = labelById.get(id) ?? labels[id] ?? id;
+    const accountId = summaryAccountLabel(accounts[id]);
+    return { id, label, status, accountId };
+  });
+  const onlineCount = items.filter((i) => i.status === "ok").length;
+  const totalCount = items.length;
+  const allOk = totalCount > 0 && onlineCount === totalCount;
+  const noneOk = onlineCount === 0;
+  const headerClass = allOk
+    ? "ov-status-pill--ok"
+    : noneOk
+      ? "ov-status-pill--danger"
+      : "ov-status-pill--warn";
+
+  return html`
+    <section class="ov-panel" style="margin-bottom: 16px;">
+      <header class="ov-panel__head">
+        <div class="ov-panel__heading">
+          <h3 class="ov-panel__title">${t("channels.summary.title")}</h3>
+          <div class="ov-panel__sub">${t("channels.summary.subtitle")}</div>
+        </div>
+        <span class="ov-status-pill ${headerClass}">
+          ${t("channels.summary.online", { online: onlineCount, total: totalCount })}
+        </span>
+      </header>
+      ${items.length === 0
+        ? html`<div class="ov-panel__empty muted">${t("channels.summary.empty")}</div>`
+        : html`
+            <div class="ov-channel-list">
+              ${items.map(
+                (c) => html`
+                  <div class="ov-channel-row">
+                    <span class="ov-status-dot ov-status-dot--${c.status}"></span>
+                    <span class="ov-channel-row__name">${c.label}</span>
+                    <span class="ov-channel-row__id mono">${c.accountId}</span>
+                  </div>
+                `,
+              )}
+            </div>
+          `}
     </section>
   `;
 }

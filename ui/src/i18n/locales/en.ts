@@ -64,10 +64,21 @@ export const en: TranslationMap = {
     logout: "Logout",
   },
   channels: {
+    summary: {
+      title: "Channels",
+      subtitle: "Connection status across all messaging channels.",
+      online: "{online}/{total} online",
+      empty: "No channels configured.",
+    },
+    cards: {
+      title: "Configuration",
+      subtitle: "Configure and authenticate each channel.",
+    },
     health: {
       title: "Channel health",
       subtitle: "Channel status snapshots from the gateway.",
       noSnapshotYet: "No snapshot yet.",
+      toggle: "Show raw snapshot",
     },
     generic: {
       subtitle: "Channel status and configuration.",
